@@ -66,6 +66,13 @@ class MenuBar:
         # Add 'Export TPs' to the export menu
         self.export_menu.add_command(label="Export TPs", command=self.export_tps)
 
+
+        # Add 'Help' menu
+        self.help_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+        # Add 'About' to the help menu
+        self.help_menu.add_command(label="How to use", command=self.app.how_to_use)
+
     def calc_msi_machine_coordinate(self):
         for k, v in self.app.items.items():
             if isinstance(v, MsiImage):
@@ -184,3 +191,8 @@ class MenuBar:
             print(f"Teaching points have been exported to {file_path}")
         else:
             print("No file path is given")
+
+    def how_to_use(self):
+        """open doc/how_to_use.md"""
+        import webbrowser
+        webbrowser.open("../doc/how_to_use.md")
