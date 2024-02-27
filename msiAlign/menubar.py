@@ -3,7 +3,7 @@ from tkinter import filedialog, simpledialog, ttk
 import logging
 
 
-from objects import XrayImage, LinescanImage, MsiImage
+from msiAlign.objects import XrayImage, LinescanImage, MsiImage
 
 
 class MenuBar:

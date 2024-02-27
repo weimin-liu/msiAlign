@@ -5,7 +5,7 @@ import shutil
 # create a namedtuple for the metadata
 from collections import namedtuple
 
-from imaging.manual_alignment.func import get_image_file_from_mis, get_px_rect_from_mis, get_msi_rect_from_imaginginfo
+from msiAlign.func import get_image_file_from_mis, get_px_rect_from_mis, get_msi_rect_from_imaginginfo
 
 Metadata = namedtuple("Metadata", ["spec_file_name",
                                    "msi_img_file_path",
