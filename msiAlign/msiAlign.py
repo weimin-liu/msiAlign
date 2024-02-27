@@ -12,10 +12,10 @@ import tqdm
 
 logging.basicConfig(level=logging.DEBUG)
 
-from objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
-from menubar import MenuBar
-from rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
-from func import CorSolver, sort_points_clockwise
+from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
+from msiAlign.menubar import MenuBar
+from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
+from msiAlign.func import CorSolver, sort_points_clockwise
 
 
 class MainApplication(tk.Tk):
@@ -615,6 +615,10 @@ class MainApplication(tk.Tk):
         self.mainloop()
 
 
-if __name__ == "__main__":
+def main():
     app = MainApplication()
     app.main()
+
+
+if __name__ == "__main__":
+    main()

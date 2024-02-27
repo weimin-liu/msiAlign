@@ -4,11 +4,6 @@ import tkinter as tk
 from math import sqrt
 from tkinter import simpledialog
 
-import numpy as np
-
-from imaging.manual_alignment import objects
-from imaging.manual_alignment.objects import MsiImage
-
 
 class RightClickMenu:
     """ this is the superclass for the right-click menu"""
