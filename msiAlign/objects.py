@@ -183,13 +183,6 @@ class TeachableImage(LoadedImage):
         # json data key cannot be a tuple, convert the key to a string
         try:
             json_data["teaching_points"] = {str(k): v for k, v in json_data["teaching_points"].items()}
-            if hasattr(self, 'teaching_points_px_coords'):
-                try:
-                    json_data["teaching_points_px_coords"] = {str(k): v for k, v in
-                                                              json_data["teaching_points_px_coords"].items()}
-                except Exception as e:
-                    logging.error(e)
-                    pass
         except Exception as e:
             logging.error(e)
             pass
@@ -201,14 +194,6 @@ class TeachableImage(LoadedImage):
         self = super().from_json(json_data, app)
         # convert the key back to a tuple
         json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
-        if hasattr(self, 'teaching_points_px_coords'):
-            try:
-                json_data["teaching_points_px_coords"] = {eval(k): v for k, v in
-                                                          json_data["teaching_points_px_coords"].items()}
-                self.teaching_points_px_coords = json_data['teaching_points_px_coords']
-            except Exception as e:
-                logging.error(e)
-                pass
         self.teaching_points = json_data['teaching_points']
         logging.debug(f"teaching points: {self.teaching_points}")
         # draw the teaching points on the canvas if they exist
@@ -252,6 +237,10 @@ class MsiImage(TeachableImage):
         json_data = super().to_json()
         json_data["msi_rect"] = self.msi_rect
         json_data["px_rect"] = self.px_rect
+        if self.teaching_points_px_coords is not None:
+            json_data["teaching_points_px_coords"] = self.teaching_points_px_coords
+            json_data["teaching_points_px_coords"] = {str(k): v for k, v in
+                                                      json_data["teaching_points_px_coords"].items()}
         return json_data
 
     @classmethod
@@ -259,6 +248,13 @@ class MsiImage(TeachableImage):
         self = super().from_json(json_data, app)
         self.msi_rect = json_data['msi_rect']
         self.px_rect = json_data['px_rect']
+        try:
+            json_data["teaching_points_px_coords"] = {eval(k): v for k, v in
+                                                      json_data["teaching_points_px_coords"].items()}
+            self.teaching_points_px_coords = json_data['teaching_points_px_coords']
+        except Exception as e:
+            logging.error(e)
+            pass
         return self
 
     def rm(self, app):
