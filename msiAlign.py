@@ -27,7 +27,7 @@ class MainApplication(tk.Tk):
         self.right_click_on_tp = None
         self.right_click_on_image = None
         self.right_click_on_line = None
-        self.title('CorelDraw Imposter')
+        self.title('msiAlign')
         self.items = {}
         self.create_canvas()
 
