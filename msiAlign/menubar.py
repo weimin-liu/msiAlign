@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk
 import logging
 
-
+from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, LinescanImage, MsiImage
 
 
@@ -22,6 +22,8 @@ class MenuBar:
         self.file_menu.add_command(label="Load workspace", command=self.app.load)
         # Add 'Open' to the file menu
         self.file_menu.add_command(label="Add images", command=self.add_images)
+        # Add 'crawl metadata' to the file menu
+        self.file_menu.add_command(label="Crawl metadata", command=crawl_metadata)
         # Add 'Add metadata' to the file menu
         self.file_menu.add_command(label="Attach database", command=self.app.add_metadata)
         # Add 'Exit' to the file menu
@@ -66,12 +68,11 @@ class MenuBar:
         # Add 'Export TPs' to the export menu
         self.export_menu.add_command(label="Export TPs", command=self.export_tps)
 
-
         # Add 'Help' menu
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="How to use", command=self.app.how_to_use)
+        self.help_menu.add_command(label="How to use", command=self.how_to_use)
 
     def calc_msi_machine_coordinate(self):
         for k, v in self.app.items.items():
@@ -194,5 +195,12 @@ class MenuBar:
 
     def how_to_use(self):
         """open doc/how_to_use.md"""
-        import webbrowser
-        webbrowser.open("../doc/how_to_use.md")
+        # create a tkinter window
+        with open("./doc/how_to_use.md", "r") as f:
+            text = f.read()
+            text_window = tk.Toplevel(self.app)
+            text_window.title("How to use")
+            text_widget = tk.Text(text_window)
+            text_widget.insert(tk.END, text)
+            text_widget.pack(fill=tk.BOTH, expand=True)
+            text_window.mainloop()

@@ -1,5 +1,8 @@
 """ crawler for metadata """
+import logging
 import os
+from tkinter import filedialog, simpledialog
+
 import tqdm
 import shutil
 # create a namedtuple for the metadata
@@ -80,9 +83,33 @@ class MetadataCrawler:
             shutil.copy(v.msi_img_file_path, os.path.join(target_dir, v.msi_img_file_name))
 
 
+def crawl_metadata():
+    """Crawl the raw data directory and return the metadata files"""
+    metadata_dir = filedialog.askdirectory()
+    if metadata_dir:
+        metadata_crawler = MetadataCrawler(metadata_dir)
+        metadata_crawler.crawl()
+        logging.debug(f"Metadata has been crawled")
+        # ask the user to save the metadata to a sqlite database
+        db_path = filedialog.asksaveasfilename(defaultextension=".db")
+        if db_path:
+            metadata_crawler.to_sqlite(db_path)
+            logging.debug(f"Metadata has been crawled and saved to {db_path}")
+        # ask the user if they want to collect the msi images
+        collect_msi_img = simpledialog.askstring("Collect MSI Images",
+                                                 "Do you want to collect the MSI images? (y/n)")
+        if collect_msi_img == "y":
+            target_dir = filedialog.askdirectory()
+            if target_dir:
+                metadata_crawler.collect_msi_img(target_dir)
+                logging.debug(f"MSI images have been collected to {target_dir}")
+            else:
+                logging.debug("No target directory is given")
+
+    else:
+        logging.debug("No metadata directory is given")
+
+
 if __name__ == "__main__":
-    mc = MetadataCrawler(r"\\intranet.marum.de\storage\groups\BioGeoChem\Store2\FTICR-MS\FTICR-MS\Susanne\2021"
-                         r"\SBB_MV0811-14TC")
-    mc.crawl()
-    mc.to_sqlite(r"./data/metadata.db")
-    mc.collect_msi_img(r"./data/msi_img")
+    pass
+

@@ -10,7 +10,6 @@ import logging
 import numpy as np
 import tqdm
 
-logging.basicConfig(level=logging.DEBUG)
 
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
 from msiAlign.menubar import MenuBar
