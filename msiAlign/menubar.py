@@ -196,11 +196,13 @@ class MenuBar:
     def how_to_use(self):
         """open doc/how_to_use.md"""
         # create a tkinter window
-        with open("./doc/how_to_use.md", "r") as f:
-            text = f.read()
-            text_window = tk.Toplevel(self.app)
-            text_window.title("How to use")
-            text_widget = tk.Text(text_window)
-            text_widget.insert(tk.END, text)
-            text_widget.pack(fill=tk.BOTH, expand=True)
-            text_window.mainloop()
+        from msiAlign.doc import helpdoc
+        text_window = tk.Toplevel(self.app)
+        text_window.title("How to use")
+        text_widget = tk.Text(text_window)
+        text_widget.insert(tk.END, helpdoc)
+        text_widget.pack(fill=tk.BOTH, expand=True)
+        text_window.mainloop()
+
+
+
