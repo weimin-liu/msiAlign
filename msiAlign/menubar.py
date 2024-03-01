@@ -18,15 +18,19 @@ class MenuBar:
         # Add file menu
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Add images", command=self.add_images)
+        self.file_menu.add_separator()
         self.file_menu.add_command(label="Save workspace", command=self.app.save)
         self.file_menu.add_command(label="Load workspace", command=self.app.load)
+        self.file_menu.add_separator()
         # Add 'Open' to the file menu
-        self.file_menu.add_command(label="Add images", command=self.add_images)
+
         # Add 'crawl metadata' to the file menu
         self.file_menu.add_command(label="Crawl metadata", command=crawl_metadata)
         # Add 'Add metadata' to the file menu
         self.file_menu.add_command(label="Attach database", command=self.app.add_metadata)
         # Add 'Exit' to the file menu
+        self.file_menu.add_separator()
         self.file_menu.add_command(label="Quit", command=self.quit)
 
         # Add 'View' menu
@@ -36,6 +40,7 @@ class MenuBar:
         self.view_menu.add_command(label="Toggle TP View", command=self.tg_tp_view)
         # update the teaching points view
         self.view_menu.add_command(label="Update TP View", command=self.update_tp_view)
+        self.view_menu.add_separator()
         # a simple way to view the BLOB data in the database
         self.view_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
 
@@ -44,6 +49,7 @@ class MenuBar:
         self.menubar.add_cascade(label="Calc", menu=self.calc_menu)
         # Add 'Cm/Px' to the calc menu
         self.calc_menu.add_command(label="cm/Px", command=self.calc_cm_per_px)
+        self.calc_menu.add_separator()
         # calculate the MSI machine coordinate
         self.calc_menu.add_command(label="MSI Machine Coord", command=self.calc_msi_machine_coordinate)
         # calculate the transformation matrix
@@ -57,10 +63,12 @@ class MenuBar:
         # Add 'Reset tp' to the dev menu
         self.dev_menu.add_command(label="Reset TP", command=self.app.reset_tp)
         self.dev_menu.add_command(label="Set TP Size", command=self.app.set_tp_size)
-        # lock all the images
-        self.dev_menu.add_command(label="Lock All Images", command=self.app.lock_all)
         # move all teaching points to the top of the canvas
         self.dev_menu.add_command(label="Move All TPs to Top", command=self.app.move_all_tps_to_top)
+        self.dev_menu.add_separator()
+        # lock all the images
+        self.dev_menu.add_command(label="Lock All Images", command=self.app.lock_all)
+
 
         # Add 'Export' menu
         self.export_menu = tk.Menu(self.menubar, tearoff=0)
