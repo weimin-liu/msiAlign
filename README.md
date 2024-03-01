@@ -7,6 +7,7 @@ Use File - Add images to add images to the canvas. You will be asked if the adde
 
 ### Organize images:
 Put the images in the right place by dragging them around and resize them by dragging the corners. You can ctrl+left click to add vertical lines to the canvas to help you align the images.
+Avoid overlapping the linescan or xray images with the MSI scan image.
 
 ### Calculate cm/pixel: 
 Add two vertical lines on the canvas, for example, at the 1cm and 2cm marks on the line scan image. Then, right click on the vertical lines two set them as "scale lines", and then in menu, click Calc - cm/Px, the program will ask you for the distance between the two lines in cm, and then it will calculate the cm/pixel ratio for the canvas.
@@ -16,6 +17,9 @@ Add another vertical line at the start of the sediment. Right click on the line 
 
 ### Mark the teaching points:
 Add teaching points by shift+left clicking on the canvas. The program will automatically calculate the distance from the sediment start to the teaching point.
+
+### Create Metadata Database
+Use "File>Crawl Metadata" and navigate to the directory containing the imaging folders (those that end on .i)
 
 ### Attach the database
 Click File - Attach database and select the database file produced by `metadata_crawler.py`. 
