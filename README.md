@@ -35,3 +35,8 @@ you can save and load the canvas by clicking File - Save Workspace and File - Lo
 
 ### View the coordinates of the teaching points:
 You can view the coordinates of the teaching points by clicking View - Update TP View. The coordinates will be shown on the side of the canvas.
+
+## Why is it not working?
+
+### For `Calc depth profile`:
+- The exported DA txt should be named exactly the same as the spectrum data, for example, if the spectrum data is named `xxxx.d`. The DA txt should be named `xxxx.d.txt`.
