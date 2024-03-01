@@ -80,6 +80,7 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
+        self.help_menu.add_command(label="v20240301", state="disabled")
         self.help_menu.add_command(label="How to use", command=self.how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
