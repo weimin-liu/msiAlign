@@ -73,6 +73,8 @@ class MenuBar:
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
         self.help_menu.add_command(label="How to use", command=self.how_to_use)
+        # Add an 'Issue' to the help menu
+        self.help_menu.add_command(label="Report an issue", command=report_issue)
 
     def calc_msi_machine_coordinate(self):
         for k, v in self.app.items.items():
@@ -205,4 +207,15 @@ class MenuBar:
         text_window.mainloop()
 
 
+def report_issue():
+    try:
+        import webbrowser
+        webbrowser.open("https://github.com/weimin-liu/msiAlign/issues")
+    except Exception as e:
+        window = tk.Toplevel()
+        window.title("Report an issue")
+        text = tk.Text(window)
+        text.insert(tk.END, "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
+        text.pack()
+        window.mainloop()
 

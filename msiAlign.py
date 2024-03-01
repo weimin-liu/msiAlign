@@ -7,6 +7,7 @@ from tkinter import ttk, simpledialog
 from tkinter import filedialog
 import logging
 
+
 import numpy as np
 import tqdm
 
@@ -20,6 +21,11 @@ from msiAlign.func import CorSolver, sort_points_clockwise
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
+        # create a logger, and save the log to a file
+        logging.basicConfig(filename="msiAlign.log", level=logging.DEBUG,
+                            format="%(asctime)s:%(levelname)s:%(message)s",
+                            filemode='a')
+
         self.geometry("1200x800")
         self.n_xray = 0
         self.n_linescan = 0
