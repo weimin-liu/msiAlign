@@ -41,7 +41,8 @@ jobs:
             CMD_BUILD: >
                 pyinstaller -F -w -n msiAlign msiAlign.py &&
                 cd dist/ &&
-                zip -r9 msiAlign msiAlign.app/                
+                zip -r9 msiAlign msiAlign.app/  
+                cd ..
             OUT_FILE_NAME: msiAlign.zip
             ASSET_MIME: application/zip
           - os: windows-latest
