@@ -36,6 +36,14 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: macos-latest
+            TARGET: macos
+            CMD_BUILD: >
+                pyinstaller -F -w -n msiAlign msiAlign.py &&
+                cd dist/ &&
+                zip -r9 msiAlign msiAlign.app/                
+            OUT_FILE_NAME: msiAlign.zip
+            ASSET_MIME: application/zip
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: pyinstaller -F -w -n msiAlign msiAlign.py
