@@ -67,6 +67,9 @@ class RightClickOnImage(RightClickMenu):
         self.menu.add_command(label="Add Label",
                               command=lambda: self.add_label(self.clicked_item))
 
+        self.menu.add_command(label="Flip upside down (not functional)",
+                              command=lambda: self.app.flip_image(self.clicked_item))
+
         chg_size = tk.Menu(self.menu, tearoff=0)
         chg_size.add_command(label="x0.5", command=lambda: self.enlarge_image(self.clicked_item, 0.5))
         chg_size.add_command(label="x1.5", command=lambda: self.enlarge_image(self.clicked_item, 1.5))

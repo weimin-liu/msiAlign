@@ -91,7 +91,10 @@ class MenuBar:
         for k, v in self.app.items.items():
             if isinstance(v, MsiImage):
                 logging.debug(f"Calculating the MSI machine coordinate for {k}")
-                v.update_tp_coords()
+                try:
+                    v.update_tp_coords(self.app.database_path)
+                except AttributeError:
+                    logging.debug(f"data base path is not set")
 
     def add_images(self):
         """Load the images from the file paths"""

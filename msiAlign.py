@@ -10,7 +10,7 @@ import logging
 
 import numpy as np
 import tqdm
-
+from PIL.Image import Image
 
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
 from msiAlign.menubar import MenuBar
@@ -154,6 +154,12 @@ class MainApplication(tk.Tk):
                                                                                            table_name_entry.get(),
                                                                                            column_name_entry.get()))
         submit_button.pack()
+
+    def flip_image(self, item):
+        """ flip the image upside down, call the flip method of the LoadedImage object"""
+        self.items[item].flip()
+        self.canvas.itemconfig(item, image=self.items[item].tk_img)
+
 
     def get_blob_data(self, spec_id, table_name, column_name):
         if self.database_path is None:

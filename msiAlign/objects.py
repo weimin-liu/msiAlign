@@ -216,11 +216,34 @@ class MsiImage(TeachableImage):
         self.px_rect = None  # the coordinates of the MSI image rectangle in pixel
         self.teaching_points_px_coords = None  # the coordinates of the teaching points in the MSI image
 
-    def update_tp_coords(self):
+    def flip(self):
+        self.img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
+        self.thumbnail = self.img.copy()
+        self.thumbnail.thumbnail(self.thumbnail_size)
+        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+
+    def update_tp_coords(self, sqlite_db_path):
         """ replace the coordinates of the teaching points with the MSI coordinates"""
         # copy the values to px_coords when this command is first called
         if self.teaching_points_px_coords is None:
             self.teaching_points_px_coords = self.teaching_points.copy()
+        if self.msi_rect is None or self.px_rect is None:
+            # if the MSI and pixel rectangle are not set, try reading the coordinates from the metadata
+            import sqlite3
+            conn = sqlite3.connect(sqlite_db_path)
+            c = conn.cursor()
+            # get the image name, px_rect, and msi_rect
+            c.execute('SELECT msi_img_file_name, px_rect, msi_rect FROM metadata')
+            data = c.fetchall()
+            for row in data:
+                im_name, px_rect, msi_rect = row
+                if im_name == os.path.basename(self.img_path):
+                    self.px_rect = eval(px_rect)
+                    self.msi_rect = eval(msi_rect)
+                    print(f"px_rect: {self.px_rect}, msi_rect: {self.msi_rect}")
+                    break
+                logging.debug(f"{im_name} not found in the metadata")
+            conn.close()
         assert self.msi_rect is not None and self.px_rect is not None, "You need to set the MSI and pixel rectangle first"
         assert self.teaching_points is not None, "You need to add teaching points first"
         logging.debug(f"msi_rect: {self.msi_rect}")
