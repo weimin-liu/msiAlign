@@ -76,7 +76,7 @@ def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0):
     df = pd.DataFrame({'spot_name': spot_names})
     for i in range(len(target_mz)):
         df['mz_' + mz_names[i]] = mz[:, i]
-        df['Int_' + mz_names[i]] = intensity[:, i]
+        df['int_' + mz_names[i]] = intensity[:, i]
         df['snr_' + mz_names[i]] = snr[:, i]
     return df
 
