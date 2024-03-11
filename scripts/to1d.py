@@ -101,20 +101,37 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
     target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
     # make sure the values are floats
     target_cmpds = {name: float(mz) for name, mz in target_cmpds.items()}
-    df = get_mz_int_depth(exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr, min_int=min_int)
-    # save the dataframe
-    df.to_csv(save_path, index=False)
-    df = df.dropna()
-    df = df.sort_values(by='d')
+    # get exported_txt_path, seperated by ';' and trim the last ';' if there is one
+    exported_txt_path = exported_txt_path.split(';')
+    if exported_txt_path[-1] == '':
+        exported_txt_path = exported_txt_path[:-1]
+    # find the first existing path
+    for path in exported_txt_path:
+        if os.path.exists(path):
+            single_exported_txt_path = path
+            df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr, min_int=min_int)
+            # save the dataframe
+            # append save_path with index if there are multiple exported_txt_path
+            if len(exported_txt_path) > 1:
+                _save_path = save_path.replace('.csv', f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
+            else:
+                _save_path = save_path
+            df.to_csv(_save_path, index=False)
+            df = df.dropna()
+            df = df.sort_values(by='d')
 
-    chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
-    # get the mean depth of each chunk
-    depth_1d = to_1d(df, chunks, "data['d'].mean()")
-    ratio_1d = to_1d(df, chunks, how)
-    horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
-    df_1d = pd.DataFrame({'d': depth_1d, 'ratio': ratio_1d, 'horizon_count': horizon_count})
-    # save the 1d depth profile
-    df_1d.to_csv(save_path_1d, index=False)
+            chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
+            # get the mean depth of each chunk
+            depth_1d = to_1d(df, chunks, "data['d'].mean()")
+            ratio_1d = to_1d(df, chunks, how)
+            horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
+            df_1d = pd.DataFrame({'d': depth_1d, 'ratio': ratio_1d, 'horizon_count': horizon_count})
+            # save the 1d depth profile
+            if len(exported_txt_path) > 1:
+                _save_path_1d = save_path_1d.replace('.csv', f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
+            else:
+                _save_path_1d = save_path_1d
+            df_1d.to_csv(_save_path_1d, index=False)
 
 
 # The following function is for the command line interface, not used in the GUI

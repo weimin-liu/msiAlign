@@ -242,11 +242,12 @@ def calc_depth_profile():
     window.title("Calc Depth Profile")
     # ask for the parameters
     # exported_txt_path, using file selection dialog, left is the text, right is the button for file selection
-    tk.Label(window, text="Exported txt path:").grid(row=0, column=0, sticky='nsew')
+    tk.Label(window, text="Exported txt path(s):").grid(row=0, column=0, sticky='nsew')
+
     exported_txt_path = tk.Entry(window)
     exported_txt_path.grid(row=0, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename())).grid(row=0, column=2,
+              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename() + ';')).grid(row=0, column=2,
                                                                                                    sticky='nsew')
 
     # sqlite_db_path
@@ -266,16 +267,16 @@ def calc_depth_profile():
     # how
     tk.Label(window, text="How:").grid(row=3, column=0, sticky='nsew')
     how = tk.Entry(window)
-    how.insert(tk.END, "data['Int_name1'].sum() / (data['Int_name1'].sum() + data['Int_name2'].sum())")
+    how.insert(tk.END, "data['int_name1'].sum() / (data['int_name1'].sum() + data['int_name2'].sum())")
     how.grid(row=3, column=1, sticky='nsew')
     # add a button to automatically generate the how string, by parsing the name1 and name2 from the target_cmpds, clear
     # the text box first, then insert the generated how string
     tk.Button(window, text="Generate",
               command=lambda: [how.delete(0, tk.END),
                                how.insert(tk.END,
-                                          f"data['Int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() / "
-                                          f"(data['Int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() +"
-                                          f"data['Int_{target_cmpds.get().split(';')[1].split(':')[0]}'].sum())")]).grid(
+                                          f"data['int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() / "
+                                          f"(data['int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() +"
+                                          f"data['int_{target_cmpds.get().split(';')[1].split(':')[0]}'].sum())")]).grid(
         row=3, column=2, sticky='nsew')
     # tol
     tk.Label(window, text="Tol (Da):").grid(row=4, column=0, sticky='nsew')
