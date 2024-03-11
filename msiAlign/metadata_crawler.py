@@ -60,6 +60,10 @@ class MetadataCrawler:
         # create a sqlite database if it does not exist
         if not os.path.exists(db_path):
             open(db_path, 'w').close()
+        else:
+            logging.debug(f"Database {db_path} already exists, removing it")
+            os.remove(db_path)
+            open(db_path, 'w').close()
         # write the metadata to the sqlite database
         import sqlite3
         conn = sqlite3.connect(db_path)
