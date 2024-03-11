@@ -15,7 +15,7 @@ from PIL.Image import Image
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
 from msiAlign.menubar import MenuBar
 from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
-from msiAlign.func import CorSolver, sort_points_clockwise
+from msiAlign.func import CorSolver, sort_points_clockwise, sort_points_clockwise_by_keys
 
 
 class MainApplication(tk.Tk):
@@ -348,7 +348,10 @@ class MainApplication(tk.Tk):
         for k, v in msi_tps.items():
             msi_ds[k] = np.array(list(v.values()))[:, 2].mean()
             msi_tps[k] = np.array(list(v.values()))[:, :2]
-            msi_tps[k] = sort_points_clockwise(np.array(msi_tps[k]))
+            # sort msi_tps and msi_ds clockwise by the keys of msi_tps
+            msi_ds[k] = sort_points_clockwise_by_keys(np.array(msi_ds[k]), np.array(list(v.keys())))
+            msi_tps[k] = sort_points_clockwise_by_keys(np.array(msi_tps[k]), np.array(list(v.keys())))
+
 
         # solve the affine transformation of how to transform from msi_tps to xray_tps
         self.solvers_xray = {}

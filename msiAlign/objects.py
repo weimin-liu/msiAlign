@@ -151,6 +151,14 @@ class TeachableImage(LoadedImage):
         super().__init__()
         self.teaching_points = None  # a list of teaching points
         self.tp_size = 3  # the size of the teaching point on the canvas
+        self.flipped = False
+
+    def flip(self):
+        self.img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
+        self.thumbnail = self.img.copy()
+        self.thumbnail.thumbnail(self.thumbnail_size)
+        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+        self.flipped = not self.flipped
 
     def add_teaching_point(self, event, app):
         canvas_x, canvas_y = app.canvas.canvasx(event.x), app.canvas.canvasy(event.y)
@@ -168,9 +176,13 @@ class TeachableImage(LoadedImage):
         scale_x = original_width / self.thumbnail.width
         scale_y = original_height / self.thumbnail.height
 
-        # calculate the coordinates of the teaching point in the original image
-        img_x = (canvas_x - self.x) * scale_x
-        img_y = (canvas_y - self.y) * scale_y
+        if not self.flipped:
+            # calculate the coordinates of the teaching point in the original image
+            img_x = (canvas_x - self.x) * scale_x
+            img_y = (canvas_y - self.y) * scale_y
+        else:
+            img_x = (canvas_x - self.x) * scale_x
+            img_y = (self.y + self.thumbnail.height - canvas_y) * scale_y
 
         if self.teaching_points is None:
             self.teaching_points = {}
@@ -179,6 +191,7 @@ class TeachableImage(LoadedImage):
 
     def to_json(self):
         json_data = super().to_json()
+        json_data["flipped"] = self.flipped
         json_data["teaching_points"] = self.teaching_points
         # json data key cannot be a tuple, convert the key to a string
         try:
@@ -192,10 +205,20 @@ class TeachableImage(LoadedImage):
     @classmethod
     def from_json(cls, json_data, app):
         self = super().from_json(json_data, app)
+        logging.debug(f"class: {self.__class__.__name__}")
         # convert the key back to a tuple
         json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
         self.teaching_points = json_data['teaching_points']
         logging.debug(f"teaching points: {self.teaching_points}")
+        try:
+            self.flipped = json_data['flipped']
+            if self.flipped:
+                self.flipped = False
+                self.flip()
+                app.canvas.itemconfig(self.tag, image=self.tk_img)
+        except Exception as e:
+            logging.error(e)
+            pass
         # draw the teaching points on the canvas if they exist
         try:
             if self.teaching_points is not None:
@@ -216,11 +239,6 @@ class MsiImage(TeachableImage):
         self.px_rect = None  # the coordinates of the MSI image rectangle in pixel
         self.teaching_points_px_coords = None  # the coordinates of the teaching points in the MSI image
 
-    def flip(self):
-        self.img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(self.thumbnail_size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
 
     def update_tp_coords(self, sqlite_db_path):
         """ replace the coordinates of the teaching points with the MSI coordinates"""
