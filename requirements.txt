@@ -1,4 +1,4 @@
 numpy
 pillow
-tzdm
+tqdm
 pandas
