@@ -46,7 +46,7 @@ jobs:
                 cd pyinstaller/bootloader &&
                 python ./waf all distclean all &&
                 cd ../ &&
-                python setup.py install &&
+                pip install . &&
                 cd ../ &&
                 pyinstaller -F -w -n msiAlign msiAlign.py &&
                 cd dist/ &&
@@ -63,7 +63,7 @@ jobs:
                 cd pyinstaller/bootloader &&
                 python ./waf all distclean all --target-arch=64bit &&
                 cd ../ &&
-                python setup.py install &&
+                pip install . &&
                 cd ../ &&
                 pyinstaller -F -w -n msiAlign msiAlign.py
             OUT_FILE_NAME: msiAlign.exe
