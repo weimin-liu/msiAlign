@@ -1,3 +1,8 @@
+# How to install
+
+- The main branch always contains the most up-to-date version. You can always download the main branch, install the package in `requirements.txt` and run `msiAlign.py`;
+- For the latest binary you can always get from [here](https://github.com/weimin-liu/msiAlign/releases/latest). For now, you will get warning that it's a trojan and will be deleted, it's due to an issue with pyinstaller (e.g. reported [here](https://stackoverflow.com/questions/43777106/program-made-with-pyinstaller-now-seen-as-a-trojan-horse-by-avg), [here](https://stackoverflow.com/questions/64788656/exe-file-made-with-pyinstaller-being-reported-as-a-virus-threat-by-windows-defen) and [here](https://github.com/pyinstaller/pyinstaller/issues/5854)). It's **False Positive**, and you need to allow it to run in your antivirus program. It might be solved in later versions...
+
 # How to use
 
 ## For those in a hurry
