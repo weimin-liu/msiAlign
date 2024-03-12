@@ -40,8 +40,8 @@ jobs:
             TARGET: macos
             CMD_BUILD: >
                 pip install setuptools --upgrade &&
+                pip install wheel &&
                 pip uninstall pyinstaller -y &&
-                pip install pyinstaller &&
                 git clone https://github.com/pyinstaller/pyinstaller &&
                 cd pyinstaller/bootloader &&
                 python ./waf all distclean all &&
@@ -57,8 +57,8 @@ jobs:
             TARGET: windows
             CMD_BUILD: >
                 pip install setuptools --upgrade &&
+                pip install wheel &&
                 pip uninstall pyinstaller -y &&
-                pip install pyinstaller &&
                 git clone https://github.com/pyinstaller/pyinstaller &&
                 cd pyinstaller/bootloader &&
                 python ./waf all distclean all --target-arch=64bit &&
