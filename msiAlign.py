@@ -77,7 +77,12 @@ class MainApplication(tk.Tk):
         try:
             # For windows and MacOS
             logging.debug(f"event.delta: {event.delta}")
-            self.canvas.yview_scroll(event.delta, "units")
+            # if it's macos
+            if sys.platform == "darwin":
+                self.canvas.yview_scroll(event.delta, "units")
+            # else it's windows
+            elif sys.platform == "win32":
+                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         except AttributeError:
             raise AttributeError("The mousewheel event is not supported on this platform")
 
@@ -348,8 +353,7 @@ class MainApplication(tk.Tk):
         for k, v in msi_tps.items():
             msi_ds[k] = np.array(list(v.values()))[:, 2].mean()
             msi_tps[k] = np.array(list(v.values()))[:, :2]
-            # sort msi_tps and msi_ds clockwise by the keys of msi_tps
-            msi_ds[k] = sort_points_clockwise_by_keys(np.array(msi_ds[k]), np.array(list(v.keys())))
+            # sort msi_tps  clockwise by the keys of msi_tps
             msi_tps[k] = sort_points_clockwise_by_keys(np.array(msi_tps[k]), np.array(list(v.keys())))
 
 
@@ -370,6 +374,16 @@ class MainApplication(tk.Tk):
             # solve the transformation of how to transform from msi_tps to line_scan_tps
             self.solvers_depth[k] = CorSolver()
             self.solvers_depth[k].fit(v, linescan_tps[idx])
+        # create a popup window to show the process is done, and ok button to close the window
+        popup = tk.Toplevel()
+        popup.title("Done")
+        popup.geometry("200x100")
+        label = tk.Label(popup, text="The transformation matrix is calculated. Note that the transformation cannot be "
+                                     "saved")
+        label.pack()
+        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+        ok_button.pack()
+
 
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
@@ -449,6 +463,17 @@ class MainApplication(tk.Tk):
             conn.close()
         else:
             logging.debug("No file path is given")
+
+        # create a popup window to show the process is done, and ok button to close the window
+        popup = tk.Toplevel()
+        popup.title("Done")
+        popup.geometry("200x100")
+        label = tk.Label(popup, text="The transformation is done")
+        label.pack()
+        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+        ok_button.pack()
+
+
 
     def set_tp_size(self):
         """set the size of the teaching points"""
@@ -544,17 +569,21 @@ class MainApplication(tk.Tk):
         file_path = filedialog.askopenfilename(defaultextension=".json")
         with open(file_path, "r") as f:
             data = json.load(f)
-            self.cm_per_pixel = data["cm_per_pixel"]
+            try:
+                self.cm_per_pixel = data["cm_per_pixel"]
+                # print the cm_per_pixel on canvas
+                # create a text on the canvas to display the scale
+                text = tk.Text(self.canvas, height=1, width=20)
+                text.insert(tk.END, f"1cm = {int(1 / self.cm_per_pixel)} pixel")
+                text.config(state="disabled")
+                self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
+            except KeyError:
+                logging.debug("No cm_per_pixel is found")
+                pass
             try:
                 self.database_path = data["database_path"]
             except KeyError:
                 pass
-            try:
-                self.scale_line.append(data["scale_line0"])
-                self.scale_line.append(data["scale_line1"])
-            except KeyError:
-                pass
-            self.sediment_start = data["sediment_start"]
 
             for item in data["items"]:
                 if "MsiImage" in item["type"]:
@@ -570,6 +599,21 @@ class MainApplication(tk.Tk):
                     vertical_line = VerticalLine.from_json(item, self)
                     self.items[vertical_line.tag] = vertical_line
                     self.bind_events_to_vertical_lines(vertical_line)
+                try:
+                    self.scale_line.append(data["scale_line0"])
+                    self.scale_line.append(data["scale_line1"])
+                    # set the scale line to green
+                    self.canvas.itemconfig(self.scale_line[0], fill="blue")
+                    self.canvas.itemconfig(self.scale_line[1], fill="blue")
+                except KeyError:
+                    logging.debug("No scale line is found")
+                    pass
+                try:
+                    self.sediment_start = data["sediment_start"]
+                    self.canvas.itemconfig(self.sediment_start, fill="green")
+                except KeyError:
+                    logging.debug("No sediment start is found")
+                    pass
 
     def export_tps(self, file_path):
         """Export the teaching points to a json file"""

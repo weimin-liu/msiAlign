@@ -49,12 +49,12 @@ class MenuBar:
         self.calc_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Calc", menu=self.calc_menu)
         # Add 'Cm/Px' to the calc menu
-        self.calc_menu.add_command(label="cm/Px", command=self.calc_cm_per_px)
+        self.calc_menu.add_command(label="cm/px", command=self.calc_cm_per_px)
         self.calc_menu.add_separator()
         # calculate the MSI machine coordinate
         self.calc_menu.add_command(label="MSI Machine Coord", command=self.calc_msi_machine_coordinate)
         # calculate the transformation matrix
-        self.calc_menu.add_command(label="Calc Transformation Matrix", command=self.app.calc_transformation_matrix)
+        self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
         # convert the machine coordinate to real world coordinate
         self.calc_menu.add_command(label="Machine to Real World", command=self.app.machine_to_real_world)
         self.calc_menu.add_separator()
@@ -82,7 +82,7 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v20240311", state="disabled")
+        self.help_menu.add_command(label="v20240313", state="disabled")
         self.help_menu.add_command(label="How to use", command=self.how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
@@ -196,7 +196,7 @@ class MenuBar:
             self.app.cm_per_pixel = real_distance / pixel_distance
             # create a text on the canvas to display the scale
             text = tk.Text(self.app.canvas, height=1, width=20)
-            text.insert(tk.END, f"1cm = {pixel_distance / real_distance} pixel")
+            text.insert(tk.END, f"1cm = {int(1/self.app.cm_per_pixel)} pixel")
             text.config(state="disabled")
             self.app.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
 

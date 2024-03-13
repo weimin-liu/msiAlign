@@ -27,7 +27,11 @@ def sort_points_clockwise_by_keys(points, key_points):
     # get the angle of the points with respect to the centroid
     angles = np.arctan2(key_points[:, 1] - centroid[1], key_points[:, 0] - centroid[0])
     # sort the points based on the angles
+    logging.debug(f"angles: {angles}")
+    logging.debug(f"points: {points}")
+    logging.debug(f"argsort: {np.argsort(angles)}")
     points = points[np.argsort(angles)]
+    logging.debug(f"sorted points: {points}")
     return points
 
 
