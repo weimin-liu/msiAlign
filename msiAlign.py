@@ -7,7 +7,6 @@ from tkinter import ttk, simpledialog
 from tkinter import filedialog
 import logging
 
-
 import numpy as np
 import tqdm
 from PIL.Image import Image
@@ -99,6 +98,9 @@ class MainApplication(tk.Tk):
         # Get the coordinates of the image
         x1, y1, x2, y2 = self.canvas.bbox(item)
 
+        # create a temporary variable to store the old width
+        self._old_width = self.items[item].thumbnail.width
+
         # calculate the offset
         _drag_offset_x = self.canvas.canvasx(event.x) - x1
         _drag_offset_y = self.canvas.canvasy(event.y) - y1
@@ -113,7 +115,7 @@ class MainApplication(tk.Tk):
         if (abs(x2 - self.canvas.canvasx(event.x)) < corner_threshold_x
                 and abs(y2 - self.canvas.canvasy(event.y)) < corner_threshold_y):
             self.canvas.bind("<B1-Motion>", lambda e: self.on_resize(e, item))
-            self.canvas.bind("<ButtonRelease-1>", lambda e: self.on_resize_stop(e))
+            self.canvas.bind("<ButtonRelease-1>", lambda e: self.on_resize_stop(e, item))
 
         else:
             self.canvas.bind("<B1-Motion>", lambda e: self.on_drag_move(e, item, _drag_offset_x, _drag_offset_y))
@@ -126,6 +128,9 @@ class MainApplication(tk.Tk):
 
     def on_drag_stop(self, event, item):
         """Stop dragging the image"""
+        # record the origin offset of the image
+        offset_x = self.canvas.coords(item)[0] - self.items[item].origin[0]
+        offset_y = self.canvas.coords(item)[1] - self.items[item].origin[1]
         # record the new position of the image
         x, y = self.canvas.coords(item)
         self.items[item].origin = (x, y)
@@ -133,6 +138,9 @@ class MainApplication(tk.Tk):
         self.canvas.delete('rect')
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
+        # update the teaching points
+        if isinstance(self.items[item], TeachableImage):
+            self.items[item].update_teaching_points(self, offset_x, offset_y)
 
     def view_blob_data(self):
         # get a popup window to choose SPEC_ID and COLUMN_NAME
@@ -164,7 +172,6 @@ class MainApplication(tk.Tk):
         """ flip the image upside down, call the flip method of the LoadedImage object"""
         self.items[item].flip()
         self.canvas.itemconfig(item, image=self.items[item].tk_img)
-
 
     def get_blob_data(self, spec_id, table_name, column_name):
         if self.database_path is None:
@@ -225,15 +232,23 @@ class MainApplication(tk.Tk):
         # resize the image by creating a new image with the new dimensions
         self.items[item].resize((new_width, new_height))
         # update the canvas item with the new image
+        logging.debug(f"item: {item}, image: {self.items[item].tk_img}")
+        logging.debug(f"self.items[item]: {self.items[item]}")
+        logging.debug('Image resized')
         self.canvas.itemconfig(item, image=self.items[item].tk_img)
+        # TODO: an error will be raised here if there are teaching points on the image, no need
+        # to panic. This is because the teaching points have the same tag as the image, so they
+        # are also be configured, but they cannot be configured with the image, so the error is raised
 
-    def on_resize_stop(self, event):
+    def on_resize_stop(self, event, item):
         """Stop resizing the image"""
         self.resizing = False
         # remove the rectangle from the canvas
         self.canvas.delete('rect')
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
+        if isinstance(self.items[item], TeachableImage):
+            self.items[item].update_teaching_points_on_resize(self, self.items[item].origin, self.items[item].thumbnail.width/self._old_width)
 
     def add_vertical_line(self, event):
         """draw a ruler on the canvas when ctrl-left-click is pressed, and calculate the scale"""
@@ -356,7 +371,6 @@ class MainApplication(tk.Tk):
             # sort msi_tps  clockwise by the keys of msi_tps
             msi_tps[k] = sort_points_clockwise_by_keys(np.array(msi_tps[k]), np.array(list(v.keys())))
 
-
         # solve the affine transformation of how to transform from msi_tps to xray_tps
         self.solvers_xray = {}
         self.solvers_depth = {}
@@ -383,7 +397,6 @@ class MainApplication(tk.Tk):
         label.pack()
         ok_button = tk.Button(popup, text="OK", command=popup.destroy)
         ok_button.pack()
-
 
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
@@ -472,8 +485,6 @@ class MainApplication(tk.Tk):
         label.pack()
         ok_button = tk.Button(popup, text="OK", command=popup.destroy)
         ok_button.pack()
-
-
 
     def set_tp_size(self):
         """set the size of the teaching points"""

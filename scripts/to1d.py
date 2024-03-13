@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 
 from scripts.parser import extract_mzs
+import tkinter as tk
+from tkinter import messagebox
 
 
 def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=1, min_int=10000):
@@ -133,6 +135,26 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
                 _save_path_1d = save_path_1d
             df_1d.to_csv(_save_path_1d, index=False)
 
+    # get a stitched together version of the 1d downcore profile
+    try:
+        if len(exported_txt_path) > 1:
+            # read all the csv with starting with '1d_' in exported_txt_path
+            dfs = [pd.read_csv(f) for f in os.listdir(os.path.dirname(_save_path_1d)) if f.startswith('1d_')]
+            # concatenate all the dataframes, with only the first dataframe having the header
+            df_1d = pd.concat(dfs, ignore_index=True)
+            df_1d.to_csv(save_path_1d, index=False)
+    except Exception as e:
+        logging.error(e)
+        print("Failed to stitch together the downcore profile")
+
+    # create a tkinter messagebox to show the user it's done and add an ok button to close the window
+    popup = tk.Toplevel()
+    popup.title("Done")
+    popup.geometry("200x100")
+    label = tk.Label(popup, text="The depth profile is done!")
+    label.pack()
+    ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+    ok_button.pack()
 
 # The following function is for the command line interface, not used in the GUI
 # def get_depth_profile():

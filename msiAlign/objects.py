@@ -160,6 +160,40 @@ class TeachableImage(LoadedImage):
         self.tk_img = ImageTk.PhotoImage(self.thumbnail)
         self.flipped = not self.flipped
 
+    def update_teaching_points_on_resize(self, app, origin, scale_factor):
+        logging.debug(f"origin: {origin}, scale_factor: {scale_factor}")
+        logging.debug(f"teaching points: {self.teaching_points}")
+        # calculate the new teaching points coordinates after image resize
+        new_keys = []
+        old_keys = []
+        if self.teaching_points is not None:
+            for k, v in self.teaching_points.items():
+                old_keys.append(k)
+                x, y = k
+                app.canvas.delete(f"tp_{int(x)}_{int(y)}")
+                x = origin[0] + (x - origin[0]) * scale_factor
+                y = origin[1] + (y - origin[1]) * scale_factor
+                new_keys.append((x, y))
+                draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
+            for old_key, new_key in zip(old_keys, new_keys):
+                self.teaching_points[new_key] = self.teaching_points.pop(old_key)
+
+    def update_teaching_points(self, app, offset_x, offset_y):
+        old_keys = []
+        new_keys = []
+        if self.teaching_points is not None:
+            for k, v in self.teaching_points.items():
+                x, y = k
+                old_keys.append(k)
+                app.canvas.delete(f"tp_{int(x)}_{int(y)}")
+                x += offset_x
+                y += offset_y
+                new_keys.append((x, y))
+                # remove the teaching point from the canvas
+                draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
+            for old_key, new_key in zip(old_keys, new_keys):
+                self.teaching_points[new_key] = self.teaching_points.pop(old_key)
+
     def add_teaching_point(self, event, app):
         canvas_x, canvas_y = app.canvas.canvasx(event.x), app.canvas.canvasy(event.y)
         logging.debug(f"teaching point added canvas_x: {canvas_x}, canvas_y: {canvas_y}")
@@ -238,7 +272,6 @@ class MsiImage(TeachableImage):
         self.msi_rect = None  # the coordinates of the MSI image rectangle in R00X?Y? format
         self.px_rect = None  # the coordinates of the MSI image rectangle in pixel
         self.teaching_points_px_coords = None  # the coordinates of the teaching points in the MSI image
-
 
     def update_tp_coords(self, sqlite_db_path):
         """ replace the coordinates of the teaching points with the MSI coordinates"""
