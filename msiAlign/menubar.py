@@ -37,6 +37,11 @@ class MenuBar:
         # Add 'View' menu
         self.view_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="View", menu=self.view_menu)
+        # show all tp labels next to the teaching points
+        self.view_menu.add_command(label="Show TP Labels", command=self.app.show_tp_labels)
+        # hide all tp labels next to the teaching points
+        self.view_menu.add_command(label="Hide TP Labels", command=self.app.hide_tp_labels)
+        self.view_menu.add_separator()
         # add 'Hide Teaching Points View' to the view menu
         self.view_menu.add_command(label="Toggle TP View", command=self.tg_tp_view)
         # update the teaching points view
@@ -54,15 +59,19 @@ class MenuBar:
         # calculate the MSI machine coordinate
         self.calc_menu.add_command(label="MSI Machine Coord", command=self.calc_msi_machine_coordinate)
         # calculate the transformation matrix
-        self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
+        # self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
         # convert the machine coordinate to real world coordinate
-        self.calc_menu.add_command(label="Machine to Real World", command=self.app.machine_to_real_world)
+        self.calc_menu.add_command(label="Machine to Real World", command=self.app.click_machine_to_real_world)
         self.calc_menu.add_separator()
-        self.calc_menu.add_command(label="Calc Depth Profile", command=calc_depth_profile)
+        self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Dev", menu=self.dev_menu)
+        # Add labels for all the teaching points
+        self.dev_menu.add_command(label="Auto add TP Labels", command=self.add_tp_labels)
+
+        self.dev_menu.add_command(label="Pair TPs", command=self.pair_tps)
         # Add 'Reset tp' to the dev menu
         self.dev_menu.add_command(label="Reset TP", command=self.app.reset_tp)
         self.dev_menu.add_command(label="Set TP Size", command=self.app.set_tp_size)
@@ -86,6 +95,35 @@ class MenuBar:
         self.help_menu.add_command(label="How to use", command=self.how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
+
+    def add_tp_labels(self):
+        """Add labels for all the teaching points"""
+        label_idx = 0
+        for k, v in self.app.items.items():
+            try:
+                for i, tp in v.teaching_points.items():
+                    # append label to the teaching_points dictionary
+                    v.teaching_points[i] = list(v.teaching_points[i])
+                    try:
+                        v.teaching_points[i][3] = label_idx
+                    except IndexError:
+                        v.teaching_points[i].append(label_idx)
+                    v.teaching_points[i] = tuple(v.teaching_points[i])
+
+                    try:
+                        # pass the label to teaching point px coords
+                        v.teaching_points_px_coords[i] = list(v.teaching_points_px_coords[i])
+                        try:
+                            v.teaching_points_px_coords[i][3] = label_idx
+                        except IndexError:
+                            v.teaching_points_px_coords[i].append(label_idx)
+                        v.teaching_points_px_coords[i] = tuple(v.teaching_points_px_coords[i])
+                    except AttributeError:
+                        pass
+                    label_idx += 1
+
+            except AttributeError:
+                pass
 
     def calc_msi_machine_coordinate(self):
         for k, v in self.app.items.items():
@@ -196,7 +234,7 @@ class MenuBar:
             self.app.cm_per_pixel = real_distance / pixel_distance
             # create a text on the canvas to display the scale
             text = tk.Text(self.app.canvas, height=1, width=20)
-            text.insert(tk.END, f"1cm = {int(1/self.app.cm_per_pixel)} pixel")
+            text.insert(tk.END, f"1cm = {int(1 / self.app.cm_per_pixel)} pixel")
             text.config(state="disabled")
             self.app.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
 
@@ -220,6 +258,25 @@ class MenuBar:
         text_widget.pack(fill=tk.BOTH, expand=True)
         text_window.mainloop()
 
+    def pair_tps(self,auto=False):
+        """pair the teaching points from xray images and msi images"""
+        # create a pop up text window to input the pair of teaching points
+        popup = tk.Toplevel()
+        popup.title("Pair Teaching Points")
+        popup.geometry("300x200")
+        # create a text input box to input the pair of teaching points that are strecthable by the user
+        text = tk.Text(popup, height=10, width=30)
+        text.grid(row=0, column=0, sticky="nsew")
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_rowconfigure(0, weight=1)
+        # create a button to submit the pair of teaching points
+        submit_button = tk.Button(popup, text="Submit", command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"), auto=auto))
+        submit_button.grid(row=1, column=0, sticky="nsew")
+        # create a button to fill in the pair of teaching points
+        fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))
+        fill_button.grid(row=2, column=0, sticky="nsew")
+
+
 
 def report_issue():
     try:
@@ -239,7 +296,7 @@ def calc_depth_profile():
     # popup a window to ask for the parameters
     window = tk.Toplevel()
     # pack the window
-    window.title("Calc Depth Profile")
+    window.title("Calc Downcore Profile")
     # ask for the parameters
     # exported_txt_path, using file selection dialog, left is the text, right is the button for file selection
     tk.Label(window, text="Exported txt path(s):").grid(row=0, column=0, sticky='nsew')
@@ -247,8 +304,9 @@ def calc_depth_profile():
     exported_txt_path = tk.Entry(window)
     exported_txt_path.grid(row=0, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename() + ';')).grid(row=0, column=2,
-                                                                                                   sticky='nsew')
+              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename() + ';')).grid(row=0,
+                                                                                                         column=2,
+                                                                                                         sticky='nsew')
 
     # sqlite_db_path
     tk.Label(window, text="Sqlite db path:").grid(row=1, column=0, sticky='nsew')
@@ -312,8 +370,8 @@ def calc_depth_profile():
     save_path.grid(row=9, column=1, sticky='nsew')
     tk.Button(window, text="Select",
               command=lambda: [save_path.delete(0, tk.END),
-              save_path.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=9, column=2,
-                                                                                             sticky='nsew')
+                               save_path.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=9, column=2,
+                                                                                               sticky='nsew')
 
     # save 1d depth profile to a csv file
     tk.Label(window, text="Save 1D to:").grid(row=10, column=0, sticky='nsew')
@@ -321,8 +379,9 @@ def calc_depth_profile():
     save_path_1d.insert(tk.END, "1D_res.csv")
     save_path_1d.grid(row=10, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: [save_path_1d.delete(0,tk.END), save_path_1d.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=10, column=2,
-                                                                                                sticky='nsew')
+              command=lambda: [save_path_1d.delete(0, tk.END),
+                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=10, column=2,
+                                                                                                  sticky='nsew')
     # Only rows with Entry widgets get expanded
     for i in range(3):
         window.grid_columnconfigure(i, weight=1 if i == 1 else 0)  # Only the column with Entry widgets gets expanded

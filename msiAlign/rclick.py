@@ -91,8 +91,6 @@ class RightClickOnImage(RightClickMenu):
         self.menu.add_command(label="Send to Back",
                               command=lambda: self.app.canvas.tag_lower(self.clicked_item))
 
-
-
     def add_label(self, item):
         """ add label to the item, unlike tag, label is not unique and can be changed and easy to understand"""
         label = simpledialog.askstring("Input", "Enter the label")
@@ -105,6 +103,7 @@ class RightClickOnImage(RightClickMenu):
         # update the item to be right-clicked
         self.clicked_item = item
         self.clicked_event = event
+        logging.debug(f"Image {item} is right-clicked")
 
         if self.app.items[item].locked:
             self.menu.entryconfig("Unlock", state="normal")
@@ -156,6 +155,9 @@ class RightClickOnTeachingPoint(RightClickMenu):
     """this is the right-click menu for the teaching point"""
 
     def _add_menu_item(self):
+        self.menu.add_command(label="Label",
+                              command=lambda: self.add_label(self.clicked_event, self.clicked_item))
+        self.menu.add_separator()
         self.menu.add_command(label="Delete",
                               command=lambda: self.delete_teaching_point(self.clicked_event, self.clicked_item))
 
@@ -166,6 +168,40 @@ class RightClickOnTeachingPoint(RightClickMenu):
         self.clicked_event = event
         # show the menu
         self.menu.post(event.x_root, event.y_root)
+        # prevent other right-click menu from showing
+        return "break"
+
+    def add_label(self, event, item):
+        # find the clicked image
+        clicked_image = self.app.find_clicked_image(event)
+        closest_tp = None
+        for k, v in clicked_image.teaching_points.items():
+            logging.debug(f"comparing {f'tp_{int(k[0])}_{int(k[1])}'}, {item}")
+            # find the closest teaching point to the clicked point
+            distance = sqrt((k[0] - self.app.canvas.coords(item)[0]) ** 2 +
+                            (k[1] - self.app.canvas.coords(item)[1]) ** 2)
+            if closest_tp is None:
+                closest_tp = (k, distance)
+            elif distance < closest_tp[1]:
+                closest_tp = (k, distance)
+        # add label to the teaching point
+        while True:
+            label = simpledialog.askstring("Input", "Enter the label (only integer is allowed)")
+            if label is None:
+                return
+            try:
+                label = int(label)
+                break
+            except ValueError:
+                pass
+        # append label to the teaching_points dictionary
+        clicked_image.teaching_points[closest_tp[0]] = list(clicked_image.teaching_points[closest_tp[0]])
+        try:
+            clicked_image.teaching_points[closest_tp[0]][3] = label
+        except IndexError:
+            clicked_image.teaching_points[closest_tp[0]].append(label)
+        clicked_image.teaching_points[closest_tp[0]] = tuple(clicked_image.teaching_points[closest_tp[0]])
+        logging.debug(f'{clicked_image.teaching_points[closest_tp[0]]}')
 
     def delete_teaching_point(self, event, item):
         """delete the teaching point"""
@@ -177,7 +213,7 @@ class RightClickOnTeachingPoint(RightClickMenu):
             logging.debug(f"comparing {f'tp_{int(k[0])}_{int(k[1])}'}, {item}")
             # find the closest teaching point to the clicked point
             distance = sqrt((k[0] - self.app.canvas.coords(item)[0]) ** 2 +
-                               (k[1] - self.app.canvas.coords(item)[1]) ** 2)
+                            (k[1] - self.app.canvas.coords(item)[1]) ** 2)
             if closest_tp is None:
                 closest_tp = (k, distance)
             elif distance < closest_tp[1]:
@@ -189,5 +225,11 @@ class RightClickOnTeachingPoint(RightClickMenu):
         except TypeError:
             logging.debug(f"Teaching point {item} is deleted")
             pass
+        try:
+            self.app.items[clicked_image.tag].teaching_points_px_coords.pop(closest_tp[0])
+        except Exception as e:
+            logging.debug(e)
+            pass
+
         self.app.canvas.delete(item)
         logging.debug(f"Teaching point {item} is deleted")
