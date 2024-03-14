@@ -93,7 +93,7 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v20240313", state="disabled")
+        self.help_menu.add_command(label="v1.0.0", state="disabled")
         self.help_menu.add_command(label="How to use", command=self.how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
@@ -242,19 +242,20 @@ class MenuBar:
             print("No file path is given")
 
     def how_to_use(self):
-        """open doc/how_to_use.md"""
-        # create a tkinter window
-        from msiAlign.doc import helpdoc
-        text_window = tk.Toplevel(self.app)
-        text_window.title("How to use")
-        text_widget = tk.Text(text_window)
-        text_widget.insert(tk.END, helpdoc)
-        text_widget.pack(fill=tk.BOTH, expand=True)
-        text_window.mainloop()
+        """open a webpage to show how to use the software"""
+        try:
+            import webbrowser
+            webbrowser.open("https://github.com/weimin-liu/msiAlign/blob/main/README.md")
+        except Exception as e:
+            window = tk.Toplevel()
+            window.title("How to use")
+            text = tk.Text(window)
+            text.insert(tk.END, "Please visit https://github.com/weimin-liu/msiAlign/blob/main/README.md")
+
 
     def pair_tps(self,auto=False):
         """pair the teaching points from xray images and msi images"""
-        # create a pop up text window to input the pair of teaching points
+        # create a pop-up text window to input the pair of teaching points
         popup = tk.Toplevel()
         popup.title("Pair Teaching Points")
         popup.geometry("300x200")

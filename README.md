@@ -26,17 +26,18 @@ Add teaching points by shift+left clicking on the canvas. The program will autom
 ### Create Metadata Database
 Use "File>Crawl Metadata" and navigate to the directory containing the imaging folders (those that end on .i)
 
-### Attach the database
-Click File - Attach database and select the database file produced by `metadata_crawler.py`. 
+### Attach  database
+Click File - Attach database and select the database file produced by the above step.
 
-### Convert the teaching points coordinates from pixel to machine coordinates:
-Click Calc - MSI Machine Coord
-
-### Calculate the transformation matrix between three kinds of images:
-Click Calc - Calc Transformation Matrix
-
-### Get the transformed coordinates of the teaching points:
-Click Calc - Machine to Real World, the results will be saved in the attached database file.
+### Get the transformed coordinates:
+Click Calc - Machine to Real World, you will be asked if you want to manually or automatically pair the teaching points
+- Manually: 
+  - Label: if you want to manually pair the teaching points, you need to first label all the teaching points with integer values (right click on the teaching point and select "Label"). Or, to save some time, you can use `Dev` -> `Auto add TP labels` to automatically add integer labels starting from 0 to all teaching points.
+  - Pair: then, you need to pair the teaching points when asked by the program. The input should like below. Basically, each line is a pair of teaching points, and they are seperated by whitespace.
+  ![Screenshot 2024-03-14 at 14.21.28.png](imgs%2FScreenshot%202024-03-14%20at%2014.21.28.png)
+  - Calculate: click `Submit` button and the program will calculate the transformation matrix and the transformed coordinates, the results will be saved in the database. If you save the workspace now, the paired teaching points will also be saved, and next time you can just click fill to re-fill the pairs.
+- Automatically:
+  - The program will automatically pair the teaching points in a clockwise order, and calculate the transformation matrix and the transformed coordinates.
 
 ## Useful functions:
 ### Save and load the canvas:
