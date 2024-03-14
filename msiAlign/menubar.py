@@ -57,7 +57,6 @@ class MenuBar:
         self.calc_menu.add_command(label="cm/px", command=self.calc_cm_per_px)
         self.calc_menu.add_separator()
         # calculate the MSI machine coordinate
-        self.calc_menu.add_command(label="MSI Machine Coord", command=self.calc_msi_machine_coordinate)
         # calculate the transformation matrix
         # self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
         # convert the machine coordinate to real world coordinate
@@ -80,6 +79,9 @@ class MenuBar:
         self.dev_menu.add_separator()
         # lock all the images
         self.dev_menu.add_command(label="Lock All Images", command=self.app.lock_all)
+        self.dev_menu.add_separator()
+        self.dev_menu.add_command(label="MSI Machine Coord", command=self.app.calc_msi_machine_coordinate)
+
 
         # Add 'Export' menu
         self.export_menu = tk.Menu(self.menubar, tearoff=0)
@@ -125,14 +127,6 @@ class MenuBar:
             except AttributeError:
                 pass
 
-    def calc_msi_machine_coordinate(self):
-        for k, v in self.app.items.items():
-            if isinstance(v, MsiImage):
-                logging.debug(f"Calculating the MSI machine coordinate for {k}")
-                try:
-                    v.update_tp_coords(self.app.database_path)
-                except AttributeError:
-                    logging.debug(f"data base path is not set")
 
     def add_images(self):
         """Load the images from the file paths"""
@@ -394,3 +388,28 @@ def calc_depth_profile():
                                                          min_n_samples.get(),
                                                          horizon_size.get(), save_path.get(), save_path_1d.get())).grid(
         row=11, column=0, columnspan=3, sticky='nsew')
+
+
+    # add another button to stitch the 1d downcore profiles together
+    tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
+
+def stitch_1d():
+    # ask for the 1d downcore profiles
+    file_paths = filedialog.askopenfilenames()
+    # ask for the save path
+    save_path = filedialog.asksaveasfilename()
+    # stitch the 1d downcore profiles together
+    import pandas as pd
+    dfs = [pd.read_csv(file_path) for file_path in file_paths]
+    df = pd.concat(dfs, axis=0, ignore_index=True)
+    df.to_csv(save_path, index=False)
+    # pop up a window to show it is done
+    window = tk.Toplevel()
+    window.title("Stitch 1D")
+    text = tk.Text(window)
+    text.insert(tk.END, f"1D downcore profiles have been stitched together and saved to {save_path}")
+    text.pack()
+    # add a ok button to close the window
+    tk.Button(window, text="OK", command=window.destroy).pack()
+    window.mainloop()
+
