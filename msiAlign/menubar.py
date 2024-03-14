@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
+from tkinter.ttk import Combobox
 import logging
 
 from msiAlign.metadata_crawler import crawl_metadata
@@ -142,12 +143,12 @@ class MenuBar:
 
     def add_images(self):
         """Load the images from the file paths"""
-        file_paths = filedialog.askopenfilenames()
+        file_paths = filedialog.askopenfilenames(title="Select image files", filetypes=[("Image files", "*.png *.jpg *.tif")])
         for file_path in file_paths:
             for k, v in self.app.items.items():
                 try:
                     if v.path == file_path:
-                        raise ValueError(f"{file_path} has already been loaded")
+                        messagebox.showerror("Error", f"{file_path} has already been loaded")
                 except AttributeError:
                     pass
             if self.app.n_xray * self.app.n_linescan == 0:
@@ -164,7 +165,7 @@ class MenuBar:
                 elif image_type == "m":
                     loaded_image = MsiImage.from_path(file_path)
                 else:
-                    raise ValueError("You need to choose an image type")
+                    messagebox.showerror("Error", "You need to choose an image type")
             else:
                 loaded_image = MsiImage.from_path(file_path)
             logging.debug(f"Loaded image: {loaded_image}")
@@ -227,8 +228,10 @@ class MenuBar:
     def calc_cm_per_px(self):
         # get the two vertical scale lines
         if len(self.app.scale_line) < 2:
+            messagebox.showerror("Error", "You need to draw two vertical lines to calculate the scale")
             raise ValueError("You need to draw two vertical lines to calculate the scale")
         elif len(self.app.scale_line) > 2:
+            messagebox.showerror("Error", "You have drawn more than two vertical lines")
             raise ValueError("You have drawn more than two vertical lines")
         else:
             # calculate the distance between the two scale lines
@@ -246,12 +249,12 @@ class MenuBar:
 
     def export_tps(self):
         """Export the teaching points to a json file"""
-        file_path = filedialog.asksaveasfilename(defaultextension=".json")
+        file_path = filedialog.asksaveasfilename(title="Export Teaching Points", filetypes=[("JSON files", "*.json")])
         if file_path:
             self.app.export_tps(file_path)
-            print(f"Teaching points have been exported to {file_path}")
+            messagebox.showinfo("Export Teaching Points", f"Teaching points have been exported to {file_path}")
         else:
-            print("No file path is given")
+            messagebox.showinfo("Export Teaching Points", "No file path is given")
 
     def pair_tps(self, auto=False):
         """pair the teaching points from xray images and msi images"""
@@ -299,24 +302,28 @@ def calc_depth_profile():
     exported_txt_path = tk.Entry(window)
     exported_txt_path.grid(row=0, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename() + ';')).grid(row=0,
-                                                                                                         column=2,
-                                                                                                         sticky='nsew')
+              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename(title='Select exported txt',filetypes=[("Plain text files","*.txt")]) + ';')).grid(row=0, column=2,sticky='nsew')
 
     # sqlite_db_path
     tk.Label(window, text="Sqlite db path:").grid(row=1, column=0, sticky='nsew')
     sqlite_db_path = tk.Entry(window)
     sqlite_db_path.grid(row=1, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: sqlite_db_path.insert(tk.END, filedialog.askopenfilename())).grid(row=1, column=2,
+              command=lambda: sqlite_db_path.insert(tk.END, filedialog.askopenfilename(
+                    title='Select sqlite db', filetypes=[("SQLite files", "*.db")]
+              ))).grid(row=1, column=2,
                                                                                                 sticky='nsew')
 
     # target_cmpds, able to add multiple target compounds, using a text box, and a button to add a new target
     # compound with name and m/z
     tk.Label(window, text="Target cmpds:").grid(row=2, column=0, sticky='nsew')
-    target_cmpds = tk.Entry(window)
-    target_cmpds.insert(tk.END, "name1:mz1;name2:mz2")
+    target_cmpds = Combobox(window)
     target_cmpds.grid(row=2, column=1, sticky='nsew')
+    target_cmpds['values'] = ("name1:mz1;name2:mz2",
+                              "GDGT0:1324.3046;GDGT5:1314.2264",
+                              "ALK37_2:553.5319;ALK37_3:551.5162")
+    target_cmpds.current(0)
+
     # how
     tk.Label(window, text="How:").grid(row=3, column=0, sticky='nsew')
     how = tk.Entry(window)
@@ -332,7 +339,7 @@ def calc_depth_profile():
                                           f"data['int_{target_cmpds.get().split(';')[1].split(':')[0]}'].sum())")]).grid(
         row=3, column=2, sticky='nsew')
     # tol
-    tk.Label(window, text="Tol (Da):").grid(row=4, column=0, sticky='nsew')
+    tk.Label(window, text="Tol (Da, full window):").grid(row=4, column=0, sticky='nsew')
     tol = tk.Entry(window)
     tol.insert(tk.END, "0.01")
     tol.grid(row=4, column=1, sticky='nsew')
@@ -365,8 +372,9 @@ def calc_depth_profile():
     save_path.grid(row=9, column=1, sticky='nsew')
     tk.Button(window, text="Select",
               command=lambda: [save_path.delete(0, tk.END),
-                               save_path.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=9, column=2,
-                                                                                               sticky='nsew')
+                               save_path.insert(tk.END, filedialog.asksaveasfilename(
+                                   title="Save 2d result as", filetypes=[("CSV file", '*.csv')]
+                               ))]).grid(row=9, column=2, sticky='nsew')
 
     # save 1d depth profile to a csv file
     tk.Label(window, text="Save 1D to:").grid(row=10, column=0, sticky='nsew')
@@ -375,8 +383,9 @@ def calc_depth_profile():
     save_path_1d.grid(row=10, column=1, sticky='nsew')
     tk.Button(window, text="Select",
               command=lambda: [save_path_1d.delete(0, tk.END),
-                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename())]).grid(row=10, column=2,
-                                                                                                  sticky='nsew')
+                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename(
+                                   title="Save 1d result as", filetypes=[("CSV file", '*.csv')]
+                               ))]).grid(row=10, column=2, sticky='nsew')
     # Only rows with Entry widgets get expanded
     for i in range(3):
         window.grid_columnconfigure(i, weight=1 if i == 1 else 0)  # Only the column with Entry widgets gets expanded
@@ -396,9 +405,9 @@ def calc_depth_profile():
 
 def stitch_1d():
     # ask for the 1d downcore profiles
-    file_paths = filedialog.askopenfilenames()
+    file_paths = filedialog.askopenfilenames(title="Select 1D downcore profiles", filetypes=[("CSV files", "*.csv")])
     # ask for the save path
-    save_path = filedialog.asksaveasfilename()
+    save_path = filedialog.asksaveasfilename(title="Save 1D downcore profiles as", filetypes=[("CSV files", "*.csv")])
     # stitch the 1d downcore profiles together
     import pandas as pd
     dfs = [pd.read_csv(file_path) for file_path in file_paths]

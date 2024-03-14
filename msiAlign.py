@@ -175,7 +175,7 @@ class MainApplication(tk.Tk):
 
     def get_blob_data(self, spec_id, table_name, column_name):
         if self.database_path is None:
-            file_path = filedialog.askopenfilename()
+            file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
             if file_path:
                 database_path = file_path
             else:
@@ -292,14 +292,14 @@ class MainApplication(tk.Tk):
         for k, v in self.items.items():
             if isinstance(v, LoadedImage):
                 self.right_click_on_image.lock_image(k)
-        logging.debug("All the images are locked")
+        messagebox.showinfo("Done", "All the images are locked")
 
     def move_all_tps_to_top(self):
         # move all the teaching points (with tag 'tp_*') in canvas to the top
         tps = self.find_wildcard('tp_')
         for tp in tps:
             self.canvas.tag_raise(tp)
-        logging.debug("All the teaching points are moved to the top")
+        messagebox.showinfo("Done", "All the teaching points are moved to the top")
 
     def bind_events_to_loaded_images(self, loaded_image):
         """Bind events to the loaded images"""
@@ -501,11 +501,11 @@ class MainApplication(tk.Tk):
         """apply the transformation to the msi teaching points"""
         # ask for the sqlite file to read the metadata
         if self.database_path is None:
-            file_path = filedialog.askopenfilename()
+            file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
             if file_path:
                 self.database_path = file_path
             else:
-                raise ValueError("You need to select a database file")
+                messagebox.showerror("No file path is given")
         # connect to the sqlite database
         file_path = self.database_path
         if file_path:
@@ -574,7 +574,7 @@ class MainApplication(tk.Tk):
 
             conn.close()
         else:
-            logging.debug("No file path is given")
+            messagebox.showerror("No file path is given")
 
         # create a popup window to show the process is done, and ok button to close the window
         messagebox.showinfo("Done", "The transformation is applied to the MSI coords")
@@ -615,11 +615,11 @@ class MainApplication(tk.Tk):
     def add_metadata(self):
         """Add metadata to the app"""
         if self.database_path is None:
-            file_path = filedialog.askopenfilename()
+            file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
             if file_path:
                 self.database_path = file_path
             else:
-                raise ValueError("You need to select a database file")
+                messagebox.showerror("No file path is given")
         # connect to the sqlite database
         import sqlite3
         conn = sqlite3.connect(file_path)
@@ -657,7 +657,7 @@ class MainApplication(tk.Tk):
     def save(self):
         """Save the current state of the canvas"""
         # get the file path to save the state
-        file_path = filedialog.asksaveasfilename(defaultextension=".json")
+        file_path = filedialog.asksaveasfilename(title="Save workspace",filetypes=[("JSON", "*.json")])
         data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,
         'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
 
@@ -681,7 +681,7 @@ class MainApplication(tk.Tk):
 
     def load(self):
         """Load the state of the canvas"""
-        file_path = filedialog.askopenfilename(defaultextension=".json")
+        file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
         with open(file_path, "r") as f:
             data = json.load(f)
             try:

@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 
 from PIL import Image, ImageTk
 
@@ -338,12 +338,12 @@ class MsiImage(TeachableImage):
                 if im_name == os.path.basename(self.img_path):
                     self.px_rect = eval(px_rect)
                     self.msi_rect = eval(msi_rect)
-                    print(f"px_rect: {self.px_rect}, msi_rect: {self.msi_rect}")
                     break
                 logging.debug(f"{im_name} not found in the metadata")
             conn.close()
-        assert self.msi_rect is not None and self.px_rect is not None, "You need to set the MSI and pixel rectangle first"
-        assert self.teaching_points is not None, "You need to add teaching points first"
+        assert self.msi_rect is not None and self.px_rect is not None, (
+            messagebox.showerror("Error","Something went wrong, please check the metadata file"))
+        assert self.teaching_points is not None, messagebox.showerror("Error","No teaching points found")
         logging.debug(f"msi_rect: {self.msi_rect}")
         logging.debug(f"px_rect: {self.px_rect}")
         x_min, y_min, x_max, y_max = self.msi_rect
@@ -355,7 +355,7 @@ class MsiImage(TeachableImage):
                 self.teaching_points[k] = (msi_x, msi_y, v[2], v[3])
             except IndexError:
                 self.teaching_points[k] = (msi_x, msi_y, v[2])
-        print('yes')
+
 
     def to_json(self):
         json_data = super().to_json()

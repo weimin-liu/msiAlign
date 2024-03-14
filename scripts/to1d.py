@@ -50,7 +50,8 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
     # joint the coords and df on 'spot_name'
     df = pd.merge(coords, df, on='spot_name')
     # only keep the successful spectrum, where both GDGT_0 and GDGT_5 are present
-    print(f"Successful rate: {df.dropna().shape[0] / df.shape[0]:.2f}")
+    #TODO: record this value somewhere other than log
+    logging.debug(f"Successful rate: {df.dropna().shape[0] / df.shape[0]:.2f}")
     return df
 
 
@@ -134,18 +135,6 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
             else:
                 _save_path_1d = save_path_1d
             df_1d.to_csv(_save_path_1d, index=False)
-
-    # get a stitched together version of the 1d downcore profile
-    try:
-        if len(exported_txt_path) > 1:
-            # read all the csv with starting with '1d_' in exported_txt_path
-            dfs = [pd.read_csv(f) for f in os.listdir(os.path.dirname(_save_path_1d)) if f.startswith('1d_')]
-            # concatenate all the dataframes, with only the first dataframe having the header
-            df_1d = pd.concat(dfs, ignore_index=True)
-            df_1d.to_csv(save_path_1d, index=False)
-    except Exception as e:
-        logging.error(e)
-        print("Failed to stitch together the downcore profile")
 
     # create a tkinter messagebox to show the user it's done and add an ok button to close the window
     messagebox.showinfo("Done", "The downcore profile has been successfully created")

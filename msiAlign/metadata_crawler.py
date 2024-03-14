@@ -1,7 +1,7 @@
 """ crawler for metadata """
 import logging
 import os
-from tkinter import filedialog, simpledialog
+from tkinter import filedialog, simpledialog, messagebox
 
 import tqdm
 import shutil
@@ -89,13 +89,13 @@ class MetadataCrawler:
 
 def crawl_metadata():
     """Crawl the raw data directory and return the metadata files"""
-    metadata_dir = filedialog.askdirectory()
+    metadata_dir = filedialog.askdirectory(title="Select the raw data directory")
     if metadata_dir:
         metadata_crawler = MetadataCrawler(metadata_dir)
         metadata_crawler.crawl()
         logging.debug(f"Metadata has been crawled")
         # ask the user to save the metadata to a sqlite database
-        db_path = filedialog.asksaveasfilename(defaultextension=".db")
+        db_path = filedialog.asksaveasfilename(title="Save Metadata to SQLite Database", filetypes=[("SQLite Database", "*.db")])
         if db_path:
             metadata_crawler.to_sqlite(db_path)
             logging.debug(f"Metadata has been crawled and saved to {db_path}")
@@ -103,12 +103,12 @@ def crawl_metadata():
         collect_msi_img = simpledialog.askstring("Collect MSI Images",
                                                  "Do you want to collect the MSI images? (y/n)")
         if collect_msi_img == "y":
-            target_dir = filedialog.askdirectory()
+            target_dir = filedialog.askdirectory(title="Select the target directory to collect MSI images")
             if target_dir:
                 metadata_crawler.collect_msi_img(target_dir)
-                logging.debug(f"MSI images have been collected to {target_dir}")
+                messagebox.showinfo(f"MSI images have been collected to {target_dir}")
             else:
-                logging.debug("No target directory is given")
+                messagebox.showerror("No target directory is given")
 
     else:
         logging.debug("No metadata directory is given")
