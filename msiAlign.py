@@ -3,7 +3,7 @@ import re
 import sqlite3
 import sys
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import ttk, simpledialog, messagebox
 from tkinter import filedialog
 import logging
 
@@ -401,14 +401,7 @@ class MainApplication(tk.Tk):
             self.solvers_depth[k] = CorSolver()
             self.solvers_depth[k].fit(v, linescan_tps[idx])
         # create a popup window to show the process is done, and ok button to close the window
-        popup = tk.Toplevel()
-        popup.title("Done")
-        popup.geometry("600x100")
-        label = tk.Label(popup, text="The transformation matrix is calculated. Note that the transformation cannot be "
-                                     "saved")
-        label.pack()
-        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-        ok_button.pack()
+        messagebox.showinfo("Done", "The transformation matrix was calculated.")
 
         if auto:
             self.machine_to_real_world()
@@ -471,13 +464,7 @@ class MainApplication(tk.Tk):
                 self.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
                                           np.array(list(partial_xray_tps.values()))[:, [2, 1]])
         # create a popup window to show the process is done, and ok button to close the window
-        popup = tk.Toplevel()
-        popup.title("Done")
-        popup.geometry("600x100")
-        label = tk.Label(popup, text="The teaching points are paired and the transformation matrix was calculated. ")
-        label.pack()
-        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-        ok_button.pack()
+        messagebox.showinfo("Done", "The teaching points are paired and the transformation matrix was calculated.")
 
         if auto:
             self.machine_to_real_world()
@@ -494,28 +481,21 @@ class MainApplication(tk.Tk):
     def click_machine_to_real_world(self):
         # test if metadata is added
         if self.database_path is None:
-            # create a popup window to show that the metadata is not added
-            popup = tk.Toplevel()
-            popup.title("Error")
-            popup.geometry("600x100")
-            label = tk.Label(popup, text="The metadata is not added yet")
-            label.pack()
-            ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-            ok_button.pack()
+            # create a messagebox to show that the metadata is not added yet
+            messagebox.showinfo("Error", "The metadata is not added yet")
             return
         # calculate the MSI machine coordinate
 
         self.calc_msi_machine_coordinate()
-        # ask if the user wants to automatically pair the teaching points or manually pair the teaching points
-        popup = tk.Toplevel()
-        popup.title("Pair Teaching Points")
-        popup.geometry("500x100")
-        label = tk.Label(popup, text="Do you want to automatically or manually pair the teaching points?")
-        label.grid(row=0, column=0)
-        auto_button = tk.Button(popup, text="Automatically", command=lambda: self.calc_transformation_matrix(auto=True))
-        auto_button.grid(row=1, column=0)
-        manual_button = tk.Button(popup, text="Manually", command=lambda: self.menu.pair_tps(auto=True))
-        manual_button.grid(row=1, column=1)
+        # create a messagebox to ask if the user wants to pair the teaching points automatically or manually
+
+        user_choice = messagebox.askquestion("Pair Teaching Points",
+                                             "Do you want to pair the teaching points automatically (yes) or manually (no)?",
+                                             icon='warning')
+        if user_choice == 'yes':
+            self.calc_transformation_matrix(auto=True)
+        else:
+            self.menu.pair_tps(auto=True)
 
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
@@ -597,13 +577,7 @@ class MainApplication(tk.Tk):
             logging.debug("No file path is given")
 
         # create a popup window to show the process is done, and ok button to close the window
-        popup = tk.Toplevel()
-        popup.title("Done")
-        popup.geometry("600x100")
-        label = tk.Label(popup, text="The transformation is done")
-        label.pack()
-        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-        ok_button.pack()
+        messagebox.showinfo("Done", "The transformation is applied to the MSI coords")
 
     def set_tp_size(self):
         """set the size of the teaching points"""
@@ -665,13 +639,7 @@ class MainApplication(tk.Tk):
                 pass
         conn.close()
         # create a popup window to show the process is done, and ok button to close the window
-        popup = tk.Toplevel()
-        popup.title("Done")
-        popup.geometry("200x100")
-        label = tk.Label(popup, text="The metadata is added")
-        label.pack()
-        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-        ok_button.pack()
+        messagebox.showinfo("Done", "The metadata is added")
 
     def use_as_ref_to_resize(self, item):
         """use the selected image as the reference to resize other images"""

@@ -148,13 +148,7 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
         print("Failed to stitch together the downcore profile")
 
     # create a tkinter messagebox to show the user it's done and add an ok button to close the window
-    popup = tk.Toplevel()
-    popup.title("Done")
-    popup.geometry("200x100")
-    label = tk.Label(popup, text="The depth profile is done!")
-    label.pack()
-    ok_button = tk.Button(popup, text="OK", command=popup.destroy)
-    ok_button.pack()
+    messagebox.showinfo("Done", "The downcore profile has been successfully created")
 
 # The following function is for the command line interface, not used in the GUI
 # def get_depth_profile():

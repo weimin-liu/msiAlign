@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, simpledialog, ttk
+from tkinter import filedialog, simpledialog, ttk, messagebox
 import logging
 
 from msiAlign.metadata_crawler import crawl_metadata
@@ -282,13 +282,7 @@ def report_issue():
         import webbrowser
         webbrowser.open("https://github.com/weimin-liu/msiAlign/issues")
     except Exception as e:
-        window = tk.Toplevel()
-        window.title("Report an issue")
-        text = tk.Text(window)
-        text.insert(tk.END, "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
-        text.pack()
-        window.mainloop()
-
+        messagebox.showinfo("Report an issue", "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
 
 def calc_depth_profile():
     """Calculate the depth profile"""
