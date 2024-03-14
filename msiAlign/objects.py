@@ -128,6 +128,7 @@ def draw_teaching_points(x, y, app, size=3, img_tag=None):
     if img_tag is not None:
         app.canvas.addtag_withtag(img_tag, f"tp_{int(x)}_{int(y)}")
 
+
     # bind events to the teaching point
     if sys.platform == "darwin":
         app.canvas.tag_bind(f"tp_{int(x)}_{int(y)}",
@@ -152,6 +153,43 @@ class TeachableImage(LoadedImage):
         self.teaching_points = None  # a list of teaching points
         self.tp_size = 3  # the size of the teaching point on the canvas
         self.flipped = False
+
+    @property
+    def label_indexed_teaching_points(self):
+        if self.teaching_points is not None:
+            try:
+                return {v[3]: v[:3] for v in self.teaching_points.values()}
+            except IndexError:
+                return None
+        else:
+            return None
+
+    @property
+    def px_teaching_points_labels(self):
+        if self.teaching_points is not None:
+            try:
+                return {k: v[3] for k, v in self.teaching_points.items()}
+            except IndexError:
+                return None
+        else:
+            return None
+
+    def show_tp_labels(self, app):
+        if self.teaching_points is not None:
+            for k, v in self.teaching_points.items():
+                try:
+                    text = tk.Text(app.canvas, height=1, width=3)
+                    text.insert(tk.END, v[3])
+                    text.config(state=tk.DISABLED)
+                    app.canvas.create_window(
+                        k[0],
+                        k[1],
+                        window=text,
+                        anchor="nw",
+                        tags=f"tp_labels"
+                    )
+                except IndexError:
+                    pass
 
     def flip(self):
         self.img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
@@ -222,6 +260,12 @@ class TeachableImage(LoadedImage):
             self.teaching_points = {}
         teaching_point_key = (canvas_x, canvas_y)
         self.teaching_points[teaching_point_key] = (img_x, img_y, depth)
+        # if it is an MSI image, update the teaching point coordinates in the MSI image
+        try:
+            self.teaching_points_px_coords[teaching_point_key] = (img_x, img_y, depth)
+        except Exception as e:
+            logging.error(e)
+            pass
 
     def to_json(self):
         json_data = super().to_json()
@@ -241,9 +285,12 @@ class TeachableImage(LoadedImage):
         self = super().from_json(json_data, app)
         logging.debug(f"class: {self.__class__.__name__}")
         # convert the key back to a tuple
-        json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
-        self.teaching_points = json_data['teaching_points']
-        logging.debug(f"teaching points: {self.teaching_points}")
+        try:
+            json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
+            self.teaching_points = json_data['teaching_points']
+            logging.debug(f"teaching points: {self.teaching_points}")
+        except KeyError:
+            self.teaching_points = None
         try:
             self.flipped = json_data['flipped']
             if self.flipped:
@@ -271,7 +318,7 @@ class MsiImage(TeachableImage):
         super().__init__()
         self.msi_rect = None  # the coordinates of the MSI image rectangle in R00X?Y? format
         self.px_rect = None  # the coordinates of the MSI image rectangle in pixel
-        self.teaching_points_px_coords = None  # the coordinates of the teaching points in the MSI image
+        self.teaching_points_px_coords = {}  # the coordinates of the teaching points in the MSI image
 
     def update_tp_coords(self, sqlite_db_path):
         """ replace the coordinates of the teaching points with the MSI coordinates"""
@@ -304,7 +351,10 @@ class MsiImage(TeachableImage):
         for k, v in self.teaching_points_px_coords.items():
             msi_x = (v[0] - x_min_px) / (x_max_px - x_min_px) * (x_max - x_min) + x_min
             msi_y = (v[1] - y_min_px) / (y_max_px - y_min_px) * (y_max - y_min) + y_min
-            self.teaching_points[k] = (msi_x, msi_y, v[2])
+            try:
+                self.teaching_points[k] = (msi_x, msi_y, v[2], v[3])
+            except IndexError:
+                self.teaching_points[k] = (msi_x, msi_y, v[2])
         print('yes')
 
     def to_json(self):

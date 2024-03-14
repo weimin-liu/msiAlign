@@ -248,7 +248,8 @@ class MainApplication(tk.Tk):
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
         if isinstance(self.items[item], TeachableImage):
-            self.items[item].update_teaching_points_on_resize(self, self.items[item].origin, self.items[item].thumbnail.width/self._old_width)
+            self.items[item].update_teaching_points_on_resize(self, self.items[item].origin,
+                                                              self.items[item].thumbnail.width / self._old_width)
 
     def add_vertical_line(self, event):
         """draw a ruler on the canvas when ctrl-left-click is pressed, and calculate the scale"""
@@ -321,7 +322,17 @@ class MainApplication(tk.Tk):
         else:
             raise ValueError("The platform is not supported")
 
-    def calc_transformation_matrix(self):
+    def show_tp_labels(self):
+        """ display the labels of the teaching points on the canvas"""
+        for k, v in self.items.items():
+            if isinstance(v, TeachableImage):
+                v.show_tp_labels(self)
+
+    def hide_tp_labels(self):
+        """delete all the text items on the canvas labeled 'tp_labels'"""
+        self.canvas.delete('tp_labels')
+
+    def calc_transformation_matrix(self, auto=False):
         """ solve the transformation among MSi coordinates, xray pixel coordinates, and line scan depth"""
         # get all fixed points from xray teaching points
         xray_tps = []
@@ -366,6 +377,7 @@ class MainApplication(tk.Tk):
             if isinstance(v, MsiImage):
                 msi_tps[k] = v.teaching_points
         for k, v in msi_tps.items():
+            logging.debug(f"{np.array(list(v.values()))}")
             msi_ds[k] = np.array(list(v.values()))[:, 2].mean()
             msi_tps[k] = np.array(list(v.values()))[:, :2]
             # sort msi_tps  clockwise by the keys of msi_tps
@@ -397,6 +409,90 @@ class MainApplication(tk.Tk):
         label.pack()
         ok_button = tk.Button(popup, text="OK", command=popup.destroy)
         ok_button.pack()
+
+        if auto:
+            self.machine_to_real_world()
+
+    def fill_tps_str(self):
+        try:
+            return self.pair_tp_str
+        except AttributeError:
+            return ""
+
+    def pair_tps(self, str1, auto=False):
+        logging.debug(f"input: {str1}")
+        self.pair_tp_str = str1
+        # remove the leading and trailing white spaces
+        str1 = str1.strip()
+        # convert the input string to a list of tuples
+        str1 = str1.split('\n')
+        str1 = [s.split(' ') for s in str1]
+
+        str1 = [[int(x) for x in s] for s in str1]
+        logging.debug(f"str1: {str1}")
+        paired_tps = str1
+        logging.debug(f"paired_tps: {paired_tps}")
+        # get all teaching points from xray:
+        for k, v in self.items.items():
+            if isinstance(v, XrayImage):
+                xray_tps = v.label_indexed_teaching_points
+                break
+        # get all their labels
+        xray_tp_labels = list(xray_tps.keys())
+        logging.debug(f"xray_tp_labels: {xray_tp_labels}")
+        # convert self.paired_tps to a dictionary using xray_tp_labels as the values
+        paired_tps_dict = {}
+        for i, v in enumerate(paired_tps):
+            if v[0] in xray_tp_labels:
+                paired_tps_dict[v[1]] = v[0]
+            elif v[1] in xray_tp_labels:
+                paired_tps_dict[v[0]] = v[1]
+            else:
+                logging.debug(f"v: {v} is not in xray_tp_labels")
+        logging.debug(f"paired_tps_dict: {paired_tps_dict}")
+
+        self.solvers_xray = {}
+        self.solvers_depth = {}
+
+        logging.debug(f"xray_tps: {xray_tps}")
+        for k, v in self.items.items():
+            if isinstance(v, MsiImage):
+                msi_tps = v.label_indexed_teaching_points
+                # find the teaching points that have the paired label in xray_tps
+                partial_xray_tps = {}
+                for msi_tp_label in msi_tps.keys():
+                    if msi_tp_label in paired_tps_dict.keys():
+                        partial_xray_tps[msi_tp_label] = xray_tps[paired_tps_dict[msi_tp_label]]
+                logging.debug(f"partial_xray_tps: {partial_xray_tps}")
+                self.solvers_xray[k] = CorSolver()
+                self.solvers_xray[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
+                                         np.array(list(partial_xray_tps.values()))[:, 0:2])
+                self.solvers_depth[k] = CorSolver()
+                self.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
+                                          np.array(list(partial_xray_tps.values()))[:, [2, 1]])
+        # create a popup window to show the process is done, and ok button to close the window
+        popup = tk.Toplevel()
+        popup.title("Done")
+        popup.geometry("200x100")
+        label = tk.Label(popup, text="The teaching points are paired and the transformation matrix was calculated. ")
+        label.pack()
+        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+        ok_button.pack()
+
+        if auto:
+            self.machine_to_real_world()
+
+    def click_machine_to_real_world(self):
+        # ask if the user wants to automatically pair the teaching points or manually pair the teaching points
+        popup = tk.Toplevel()
+        popup.title("Pair Teaching Points")
+        popup.geometry("200x100")
+        label = tk.Label(popup, text="Do you want to automatically or manually pair the teaching points?")
+        label.grid(row=0, column=0)
+        auto_button = tk.Button(popup, text="Automatically", command=lambda: self.calc_transformation_matrix(auto=True))
+        auto_button.grid(row=1, column=0)
+        manual_button = tk.Button(popup, text="Manually", command=lambda: self.menu.pair_tps(auto=True))
+        manual_button.grid(row=1, column=1)
 
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
@@ -554,13 +650,21 @@ class MainApplication(tk.Tk):
             if isinstance(v, MsiImage):
                 scale_factor = ref_width / v.thumbnail.width
                 self.items[k].enlarge(scale_factor)
-                self.canvas.itemconfig(k, image=self.items[k].tk_img)
+                try:
+                    self.canvas.itemconfig(k, image=self.items[k].tk_img)
+                except tk.TclError:
+                    pass
 
     def save(self):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(defaultextension=".json")
         data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path}
+
+        try:
+            data_to_save["pair_tp_str"] = self.pair_tp_str
+        except AttributeError:
+            pass
 
         try:
             data_to_save["scale_line0"] = self.scale_line[0]
@@ -593,6 +697,10 @@ class MainApplication(tk.Tk):
                 pass
             try:
                 self.database_path = data["database_path"]
+            except KeyError:
+                pass
+            try:
+                self.pair_tp_str = data["pair_tp_str"]
             except KeyError:
                 pass
 
