@@ -654,7 +654,7 @@ class MainApplication(tk.Tk):
                 except tk.TclError:
                     pass
 
-    def save(self):
+    def save(self, event=None):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(title="Save workspace",filetypes=[("JSON", "*.json")])
@@ -679,7 +679,7 @@ class MainApplication(tk.Tk):
         with open(file_path, "w") as f:
             json.dump(data_to_save, f)
 
-    def load(self):
+    def load(self, event=None):
         """Load the state of the canvas"""
         file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
         with open(file_path, "r") as f:

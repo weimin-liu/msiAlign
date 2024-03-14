@@ -32,10 +32,13 @@ class MenuBar:
         # Add file menu
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="File", menu=self.file_menu)
-        self.file_menu.add_command(label="Add images", command=self.add_images)
+        self.file_menu.add_command(label="Add images", command=self.add_images, accelerator="Ctrl+O")
+        self.app.bind("<Control-o>", self.add_images)
         self.file_menu.add_separator()
-        self.file_menu.add_command(label="Save workspace", command=self.app.save)
-        self.file_menu.add_command(label="Load workspace", command=self.app.load)
+        self.file_menu.add_command(label="Save workspace", command=self.app.save, accelerator="Ctrl+S")
+        self.app.bind("<Control-s>", self.app.save)
+        self.file_menu.add_command(label="Load workspace", command=self.app.load, accelerator="Ctrl+L")
+        self.app.bind("<Control-l>", self.app.load)
         self.file_menu.add_separator()
         # Add 'Open' to the file menu
 
@@ -45,7 +48,8 @@ class MenuBar:
         self.file_menu.add_command(label="Attach database", command=self.app.add_metadata)
         # Add 'Exit' to the file menu
         self.file_menu.add_separator()
-        self.file_menu.add_command(label="Quit", command=self.quit)
+        self.file_menu.add_command(label="Quit", command=self.quit, accelerator="Ctrl+Q")
+        self.app.bind("<Control-q>", self.quit)
 
         # Add 'View' menu
         self.view_menu = tk.Menu(self.menubar, tearoff=0)
@@ -141,7 +145,7 @@ class MenuBar:
         # show the labels
         self.app.show_tp_labels()
 
-    def add_images(self):
+    def add_images(self, event=None):
         """Load the images from the file paths"""
         file_paths = filedialog.askopenfilenames(title="Select image files", filetypes=[("Image files", "*.png *.jpg *.tif")])
         for file_path in file_paths:
@@ -172,7 +176,7 @@ class MenuBar:
             loaded_image.create_im_on_canvas(self.app)
             self.app.items[loaded_image.tag] = loaded_image
 
-    def quit(self):
+    def quit(self, event=None):
         self.app.quit()
 
     def generate_tree_view(self):
@@ -425,4 +429,5 @@ def stitch_1d():
 
 
 def about():
-    messagebox.showinfo("About", "msiAlign v1.0.0\n")
+    messagebox.showinfo("About", "msiAlign v1.0.0\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
+                                 "optimized by Weimin Liu")
