@@ -482,7 +482,17 @@ class MainApplication(tk.Tk):
         if auto:
             self.machine_to_real_world()
 
+    def calc_msi_machine_coordinate(self):
+        for k, v in self.items.items():
+            if isinstance(v, MsiImage):
+                logging.debug(f"Calculating the MSI machine coordinate for {k}")
+                try:
+                    v.update_tp_coords(self.database_path)
+                except AttributeError:
+                    logging.debug(f"database path is not set")
+
     def click_machine_to_real_world(self):
+        self.calc_msi_machine_coordinate()
         # ask if the user wants to automatically pair the teaching points or manually pair the teaching points
         popup = tk.Toplevel()
         popup.title("Pair Teaching Points")
