@@ -126,7 +126,8 @@ class MenuBar:
 
             except AttributeError:
                 pass
-
+        # show the labels
+        self.app.show_tp_labels()
 
     def add_images(self):
         """Load the images from the file paths"""
@@ -264,12 +265,15 @@ class MenuBar:
         text.grid(row=0, column=0, sticky="nsew")
         popup.grid_columnconfigure(0, weight=1)
         popup.grid_rowconfigure(0, weight=1)
+        auto_label_button = tk.Button(popup, text="I forgot to label, label them all now", command=lambda: self.add_tp_labels())
+        auto_label_button.grid(row=1, column=0, sticky="nsew")
+
         # create a button to submit the pair of teaching points
         submit_button = tk.Button(popup, text="Submit", command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"), auto=auto))
-        submit_button.grid(row=1, column=0, sticky="nsew")
+        submit_button.grid(row=2, column=0, sticky="nsew")
         # create a button to fill in the pair of teaching points
         fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))
-        fill_button.grid(row=2, column=0, sticky="nsew")
+        fill_button.grid(row=3, column=0, sticky="nsew")
 
 
 

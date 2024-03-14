@@ -67,14 +67,14 @@ class RightClickOnImage(RightClickMenu):
         self.menu.add_command(label="Add Label",
                               command=lambda: self.add_label(self.clicked_item))
 
-        self.menu.add_command(label="Flip upside down (experimental)",
-                              command=lambda: self.app.flip_image(self.clicked_item))
+        # self.menu.add_command(label="Flip upside down (experimental)",
+        #                       command=lambda: self.app.flip_image(self.clicked_item))
 
         chg_size = tk.Menu(self.menu, tearoff=0)
         chg_size.add_command(label="x0.5", command=lambda: self.enlarge_image(self.clicked_item, 0.5))
         chg_size.add_command(label="x1.5", command=lambda: self.enlarge_image(self.clicked_item, 1.5))
         chg_size.add_command(label="x2", command=lambda: self.enlarge_image(self.clicked_item, 2))
-        chg_size.add_command(label="Auto", command=lambda: self.enlarge_image(self.clicked_item, 'auto'))
+        # chg_size.add_command(label="Auto", command=lambda: self.enlarge_image(self.clicked_item, 'auto'))
         self.menu.add_cascade(label="Resize", menu=chg_size)
 
         self.menu.add_command(label="Use as Reference to Resize",

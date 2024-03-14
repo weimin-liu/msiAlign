@@ -403,7 +403,7 @@ class MainApplication(tk.Tk):
         # create a popup window to show the process is done, and ok button to close the window
         popup = tk.Toplevel()
         popup.title("Done")
-        popup.geometry("200x100")
+        popup.geometry("600x100")
         label = tk.Label(popup, text="The transformation matrix is calculated. Note that the transformation cannot be "
                                      "saved")
         label.pack()
@@ -473,7 +473,7 @@ class MainApplication(tk.Tk):
         # create a popup window to show the process is done, and ok button to close the window
         popup = tk.Toplevel()
         popup.title("Done")
-        popup.geometry("200x100")
+        popup.geometry("600x100")
         label = tk.Label(popup, text="The teaching points are paired and the transformation matrix was calculated. ")
         label.pack()
         ok_button = tk.Button(popup, text="OK", command=popup.destroy)
@@ -492,11 +492,24 @@ class MainApplication(tk.Tk):
                     logging.debug(f"database path is not set")
 
     def click_machine_to_real_world(self):
+        # test if metadata is added
+        if self.database_path is None:
+            # create a popup window to show that the metadata is not added
+            popup = tk.Toplevel()
+            popup.title("Error")
+            popup.geometry("600x100")
+            label = tk.Label(popup, text="The metadata is not added yet")
+            label.pack()
+            ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+            ok_button.pack()
+            return
+        # calculate the MSI machine coordinate
+
         self.calc_msi_machine_coordinate()
         # ask if the user wants to automatically pair the teaching points or manually pair the teaching points
         popup = tk.Toplevel()
         popup.title("Pair Teaching Points")
-        popup.geometry("200x100")
+        popup.geometry("500x100")
         label = tk.Label(popup, text="Do you want to automatically or manually pair the teaching points?")
         label.grid(row=0, column=0)
         auto_button = tk.Button(popup, text="Automatically", command=lambda: self.calc_transformation_matrix(auto=True))
@@ -586,7 +599,7 @@ class MainApplication(tk.Tk):
         # create a popup window to show the process is done, and ok button to close the window
         popup = tk.Toplevel()
         popup.title("Done")
-        popup.geometry("200x100")
+        popup.geometry("600x100")
         label = tk.Label(popup, text="The transformation is done")
         label.pack()
         ok_button = tk.Button(popup, text="OK", command=popup.destroy)
@@ -647,10 +660,18 @@ class MainApplication(tk.Tk):
             try:
                 self.items[im_name].px_rect = eval(px_rect)
                 self.items[im_name].msi_rect = eval(msi_rect)
-                print(f"px_rect: {self.items[im_name].px_rect}, msi_rect: {self.items[im_name].msi_rect}")
+                logging.debug(f"px_rect: {self.items[im_name].px_rect}, msi_rect: {self.items[im_name].msi_rect}")
             except KeyError:
                 pass
         conn.close()
+        # create a popup window to show the process is done, and ok button to close the window
+        popup = tk.Toplevel()
+        popup.title("Done")
+        popup.geometry("200x100")
+        label = tk.Label(popup, text="The metadata is added")
+        label.pack()
+        ok_button = tk.Button(popup, text="OK", command=popup.destroy)
+        ok_button.pack()
 
     def use_as_ref_to_resize(self, item):
         """use the selected image as the reference to resize other images"""
@@ -669,7 +690,8 @@ class MainApplication(tk.Tk):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(defaultextension=".json")
-        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path}
+        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,
+        'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
 
         try:
             data_to_save["pair_tp_str"] = self.pair_tp_str
@@ -711,6 +733,11 @@ class MainApplication(tk.Tk):
                 pass
             try:
                 self.pair_tp_str = data["pair_tp_str"]
+            except KeyError:
+                pass
+            try:
+                self.n_xray = data["n_xray"]
+                self.n_linescan = data["n_linescan"]
             except KeyError:
                 pass
 
