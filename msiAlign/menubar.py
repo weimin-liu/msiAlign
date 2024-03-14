@@ -7,6 +7,18 @@ from msiAlign.objects import XrayImage, LinescanImage, MsiImage
 from scripts.to1d import get_depth_profile_from_gui
 
 
+def how_to_use():
+    """open a webpage to show how to use the software"""
+    try:
+        import webbrowser
+        webbrowser.open("https://github.com/weimin-liu/msiAlign/blob/main/README.md")
+    except Exception as e:
+        window = tk.Toplevel()
+        window.title("How to use")
+        text = tk.Text(window)
+        text.insert(tk.END, "Please visit https://github.com/weimin-liu/msiAlign/blob/main/README.md")
+
+
 class MenuBar:
 
     def __init__(self, app):
@@ -82,7 +94,6 @@ class MenuBar:
         self.dev_menu.add_separator()
         self.dev_menu.add_command(label="MSI Machine Coord", command=self.app.calc_msi_machine_coordinate)
 
-
         # Add 'Export' menu
         self.export_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Export", menu=self.export_menu)
@@ -93,8 +104,8 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v1.0.0", state="disabled")
-        self.help_menu.add_command(label="How to use", command=self.how_to_use)
+        self.help_menu.add_command(label="v1.0.0", command=about)
+        self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
 
@@ -242,19 +253,7 @@ class MenuBar:
         else:
             print("No file path is given")
 
-    def how_to_use(self):
-        """open a webpage to show how to use the software"""
-        try:
-            import webbrowser
-            webbrowser.open("https://github.com/weimin-liu/msiAlign/blob/main/README.md")
-        except Exception as e:
-            window = tk.Toplevel()
-            window.title("How to use")
-            text = tk.Text(window)
-            text.insert(tk.END, "Please visit https://github.com/weimin-liu/msiAlign/blob/main/README.md")
-
-
-    def pair_tps(self,auto=False):
+    def pair_tps(self, auto=False):
         """pair the teaching points from xray images and msi images"""
         # create a pop-up text window to input the pair of teaching points
         popup = tk.Toplevel()
@@ -265,16 +264,17 @@ class MenuBar:
         text.grid(row=0, column=0, sticky="nsew")
         popup.grid_columnconfigure(0, weight=1)
         popup.grid_rowconfigure(0, weight=1)
-        auto_label_button = tk.Button(popup, text="I forgot to label, label them all now", command=lambda: self.add_tp_labels())
+        auto_label_button = tk.Button(popup, text="I forgot to label, label them all now",
+                                      command=lambda: self.add_tp_labels())
         auto_label_button.grid(row=1, column=0, sticky="nsew")
 
         # create a button to submit the pair of teaching points
-        submit_button = tk.Button(popup, text="Submit", command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"), auto=auto))
+        submit_button = tk.Button(popup, text="Submit",
+                                  command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"), auto=auto))
         submit_button.grid(row=2, column=0, sticky="nsew")
         # create a button to fill in the pair of teaching points
         fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))
         fill_button.grid(row=3, column=0, sticky="nsew")
-
 
 
 def report_issue():
@@ -282,7 +282,9 @@ def report_issue():
         import webbrowser
         webbrowser.open("https://github.com/weimin-liu/msiAlign/issues")
     except Exception as e:
-        messagebox.showinfo("Report an issue", "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
+        messagebox.showinfo("Report an issue",
+                            "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
+
 
 def calc_depth_profile():
     """Calculate the depth profile"""
@@ -388,9 +390,9 @@ def calc_depth_profile():
                                                          horizon_size.get(), save_path.get(), save_path_1d.get())).grid(
         row=11, column=0, columnspan=3, sticky='nsew')
 
-
     # add another button to stitch the 1d downcore profiles together
     tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
+
 
 def stitch_1d():
     # ask for the 1d downcore profiles
@@ -408,7 +410,10 @@ def stitch_1d():
     text = tk.Text(window)
     text.insert(tk.END, f"1D downcore profiles have been stitched together and saved to {save_path}")
     text.pack()
-    # add a ok button to close the window
+    # add an ok button to close the window
     tk.Button(window, text="OK", command=window.destroy).pack()
     window.mainloop()
 
+
+def about():
+    messagebox.showinfo("About", "msiAlign v1.0.0\n")
