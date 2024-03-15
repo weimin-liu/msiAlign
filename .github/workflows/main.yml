@@ -48,7 +48,7 @@ jobs:
                 cd ../ &&
                 pip install . &&
                 cd ../ &&
-                pyinstaller -F -w -n --noconsole msiAlign msiAlign.py &&
+                pyinstaller --noconsole -F -w -n msiAlign msiAlign.py &&
                 cd dist/ &&
                 zip -r9 msiAlign msiAlign.app/                
             OUT_FILE_NAME: msiAlign.zip
@@ -65,7 +65,7 @@ jobs:
                 cd ../ &&
                 pip install . &&
                 cd ../ &&
-                pyinstaller -F -w -n --noconsole msiAlign msiAlign.py
+                pyinstaller --noconsole -F -w -n msiAlign msiAlign.py
             OUT_FILE_NAME: msiAlign.exe
             ASSET_MIME: application/vnd.microsoft.portable-executable
     steps:

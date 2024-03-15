@@ -110,7 +110,7 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v1.0.0", command=about)
+        self.help_menu.add_command(label="v1.0.1", command=about)
         self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
@@ -428,5 +428,5 @@ def stitch_1d():
 
 
 def about():
-    messagebox.showinfo("About", "msiAlign v1.0.0\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
+    messagebox.showinfo("About", "msiAlign v1.0.1\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
                                  "optimized by Weimin Liu")
