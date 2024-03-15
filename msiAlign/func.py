@@ -35,7 +35,6 @@ def sort_points_clockwise_by_keys(points, key_points):
     return points
 
 
-
 def store_blob_info(conn, var_name, dtype, shape):
     """store the blob info to the sqlite database"""
     c = conn.cursor()

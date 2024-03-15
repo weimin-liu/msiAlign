@@ -20,7 +20,7 @@ class LoadedImage:
         self.tk_img = None
         self._tag = None
         self.locked = False
-        self.origin = (0, 0)  # the origin of the image on the canvas
+        self.origin = (None, None)  # the origin of the image on the canvas
 
     @property
     def x(self):
@@ -52,6 +52,12 @@ class LoadedImage:
         return self
 
     def create_im_on_canvas(self, app):
+        # set the origin of the image on the canvas
+        if self.origin == (None, None):
+            # get the center of the canvas at current pan and zoom level, if the origin is not set yet
+            x, y = app.canvas.canvasx(app.canvas.winfo_width() / 2), app.canvas.canvasy(app.canvas.winfo_height() / 2)
+            self.origin = (x - self.thumbnail.width / 2, y - self.thumbnail.height / 2)
+
         # create the image on the canvas
         app.canvas.create_image(
             self.origin[0],
@@ -128,7 +134,6 @@ def draw_teaching_points(x, y, app, size=3, img_tag=None):
     if img_tag is not None:
         app.canvas.addtag_withtag(img_tag, f"tp_{int(x)}_{int(y)}")
 
-
     # bind events to the teaching point
     if sys.platform == "darwin":
         app.canvas.tag_bind(f"tp_{int(x)}_{int(y)}",
@@ -153,6 +158,7 @@ class TeachableImage(LoadedImage):
         self.teaching_points = None  # a list of teaching points
         self.tp_size = 3  # the size of the teaching point on the canvas
         self.flipped = False
+        self.show_sediment_start_line_not_set_warning = True
 
     @property
     def label_indexed_teaching_points(self):
@@ -242,6 +248,9 @@ class TeachableImage(LoadedImage):
         if app.sediment_start is not None and app.cm_per_pixel is not None:
             depth = abs(app.canvas.coords(app.sediment_start)[0] - canvas_x) * app.cm_per_pixel
         else:
+            if self.show_sediment_start_line_not_set_warning:
+                messagebox.showwarning("Warning", "Sediment start line not found, depth not calculated.")
+                self.show_sediment_start_line_not_set_warning = False
             depth = None
 
         original_width, original_height = self.img.size
@@ -289,7 +298,8 @@ class TeachableImage(LoadedImage):
             json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
             self.teaching_points = json_data['teaching_points']
             logging.debug(f"teaching points: {self.teaching_points}")
-        except KeyError:
+        except Exception as e:
+            logging.error(e)
             self.teaching_points = None
         try:
             self.flipped = json_data['flipped']
@@ -342,8 +352,8 @@ class MsiImage(TeachableImage):
                 logging.debug(f"{im_name} not found in the metadata")
             conn.close()
         assert self.msi_rect is not None and self.px_rect is not None, (
-            messagebox.showerror("Error","Something went wrong, please check the metadata file"))
-        assert self.teaching_points is not None, messagebox.showerror("Error","No teaching points found")
+            messagebox.showerror("Error", "Something went wrong, please check the metadata file"))
+        assert self.teaching_points is not None, messagebox.showerror("Error", "No teaching points found")
         logging.debug(f"msi_rect: {self.msi_rect}")
         logging.debug(f"px_rect: {self.px_rect}")
         x_min, y_min, x_max, y_max = self.msi_rect
@@ -355,7 +365,6 @@ class MsiImage(TeachableImage):
                 self.teaching_points[k] = (msi_x, msi_y, v[2], v[3])
             except IndexError:
                 self.teaching_points[k] = (msi_x, msi_y, v[2])
-
 
     def to_json(self):
         json_data = super().to_json()
@@ -382,8 +391,8 @@ class MsiImage(TeachableImage):
         return self
 
     def rm(self, app):
-        f = simpledialog.askstring("Remove MSI Image", "Are you sure you want to remove the MSI image? (Y/N)")
-        if f.lower() == "y":
+        f = messagebox.askyesno("Remove MSI Image", "Are you sure you want to remove the MSI image?")
+        if f:
             # remove the image from the canvas
             app.canvas.delete(self.tag)
             # remove from the items dictionary
@@ -399,8 +408,8 @@ class LinescanImage(LoadedImage):
         super().__init__()
 
     def rm(self, app):
-        f = simpledialog.askstring("Remove Linescan Image", "Are you sure you want to remove the linescan image? (Y/N)")
-        if f.lower() == "y":
+        f = messagebox.askyesno("Remove Linescan Image", "Are you sure you want to remove the linescan image?")
+        if f:
             # remove the image from the canvas
             app.canvas.delete(self.tag)
             # remove from the items dictionary
@@ -417,8 +426,8 @@ class XrayImage(TeachableImage):
         super().__init__()
 
     def rm(self, app):
-        f = simpledialog.askstring("Remove Xray Image", "Are you sure you want to remove the xray image? (Y/N)")
-        if f.lower() == "y":
+        f = messagebox.askyesno("Remove Xray Image", "Are you sure you want to remove the xray image?")
+        if f:
             # remove the image from the canvas
             app.canvas.delete(self.tag)
             # remove from the items dictionary
@@ -426,6 +435,7 @@ class XrayImage(TeachableImage):
             app.n_xray -= 1
         else:
             return
+
 
 
 class VerticalLine:

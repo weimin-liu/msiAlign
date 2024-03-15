@@ -1,12 +1,12 @@
 """ crawler for metadata """
 import logging
 import os
-from tkinter import filedialog, simpledialog, messagebox
-
-import tqdm
 import shutil
 # create a namedtuple for the metadata
 from collections import namedtuple
+from tkinter import filedialog, simpledialog, messagebox
+
+import tqdm
 
 from msiAlign.func import get_image_file_from_mis, get_px_rect_from_mis, get_msi_rect_from_imaginginfo
 
@@ -68,13 +68,15 @@ class MetadataCrawler:
         import sqlite3
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS metadata (spec_id INTEGER PRIMARY KEY, spec_file_name TEXT, msi_img_file_path TEXT, '
-                  'msi_img_file_name TEXT, px_rect TEXT, msi_rect TEXT, spot_name TEXT)')
+        c.execute(
+            'CREATE TABLE IF NOT EXISTS metadata (spec_id INTEGER PRIMARY KEY, spec_file_name TEXT, msi_img_file_path TEXT, '
+            'msi_img_file_name TEXT, px_rect TEXT, msi_rect TEXT, spot_name TEXT)')
         for k, v in self.metadata.items():
-            c.execute('INSERT INTO metadata (spec_file_name, msi_img_file_path, msi_img_file_name, px_rect, msi_rect, spot_name) VALUES (?, ?, ?, ?, ?, ?)',
-                                                            (v.spec_file_name, v.msi_img_file_path,
-                                                                         v.msi_img_file_name, str(v.px_rect),
-                                                                         str(v.msi_rect), str(v.spot_name)))
+            c.execute(
+                'INSERT INTO metadata (spec_file_name, msi_img_file_path, msi_img_file_name, px_rect, msi_rect, spot_name) VALUES (?, ?, ?, ?, ?, ?)',
+                (v.spec_file_name, v.msi_img_file_path,
+                 v.msi_img_file_name, str(v.px_rect),
+                 str(v.msi_rect), str(v.spot_name)))
         conn.commit()
         conn.close()
 
@@ -95,7 +97,8 @@ def crawl_metadata():
         metadata_crawler.crawl()
         logging.debug(f"Metadata has been crawled")
         # ask the user to save the metadata to a sqlite database
-        db_path = filedialog.asksaveasfilename(title="Save Metadata to SQLite Database", filetypes=[("SQLite Database", "*.db")])
+        db_path = filedialog.asksaveasfilename(title="Save Metadata to SQLite Database",
+                                               filetypes=[("SQLite Database", "*.db")])
         if db_path:
             metadata_crawler.to_sqlite(db_path)
             logging.debug(f"Metadata has been crawled and saved to {db_path}")
@@ -116,4 +119,3 @@ def crawl_metadata():
 
 if __name__ == "__main__":
     pass
-

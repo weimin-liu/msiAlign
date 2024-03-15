@@ -1,20 +1,19 @@
 import json
+import logging
 import re
 import sqlite3
 import sys
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox
 from tkinter import filedialog
-import logging
+from tkinter import ttk, simpledialog, messagebox
 
 import numpy as np
 import tqdm
-from PIL.Image import Image
 
-from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
-from msiAlign.menubar import MenuBar
-from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 from msiAlign.func import CorSolver, sort_points_clockwise, sort_points_clockwise_by_keys
+from msiAlign.menubar import MenuBar
+from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
+from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 
 
 class MainApplication(tk.Tk):
@@ -450,19 +449,22 @@ class MainApplication(tk.Tk):
         logging.debug(f"xray_tps: {xray_tps}")
         for k, v in self.items.items():
             if isinstance(v, MsiImage):
-                msi_tps = v.label_indexed_teaching_points
-                # find the teaching points that have the paired label in xray_tps
-                partial_xray_tps = {}
-                for msi_tp_label in msi_tps.keys():
-                    if msi_tp_label in paired_tps_dict.keys():
-                        partial_xray_tps[msi_tp_label] = xray_tps[paired_tps_dict[msi_tp_label]]
-                logging.debug(f"partial_xray_tps: {partial_xray_tps}")
-                self.solvers_xray[k] = CorSolver()
-                self.solvers_xray[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
-                                         np.array(list(partial_xray_tps.values()))[:, 0:2])
-                self.solvers_depth[k] = CorSolver()
-                self.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
-                                          np.array(list(partial_xray_tps.values()))[:, [2, 1]])
+                try:
+                    msi_tps = v.label_indexed_teaching_points
+                    # find the teaching points that have the paired label in xray_tps
+                    partial_xray_tps = {}
+                    for msi_tp_label in msi_tps.keys():
+                        if msi_tp_label in paired_tps_dict.keys():
+                            partial_xray_tps[msi_tp_label] = xray_tps[paired_tps_dict[msi_tp_label]]
+                    logging.debug(f"partial_xray_tps: {partial_xray_tps}")
+                    self.solvers_xray[k] = CorSolver()
+                    self.solvers_xray[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
+                                             np.array(list(partial_xray_tps.values()))[:, 0:2])
+                    self.solvers_depth[k] = CorSolver()
+                    self.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
+                                              np.array(list(partial_xray_tps.values()))[:, [2, 1]])
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error: {e}")
         # create a popup window to show the process is done, and ok button to close the window
         messagebox.showinfo("Done", "The teaching points are paired and the transformation matrix was calculated.")
 
@@ -482,8 +484,16 @@ class MainApplication(tk.Tk):
         # test if metadata is added
         if self.database_path is None:
             # create a messagebox to show that the metadata is not added yet
-            messagebox.showinfo("Error", "The metadata is not added yet")
-            return
+            userchoice = messagebox.askokcancel(
+                "Metadata is not added yet",
+                "Do you want to add metadata now?",
+                icon='warning'
+            )
+            if userchoice:
+                self.add_metadata()
+            else:
+                return
+
         # calculate the MSI machine coordinate
 
         self.calc_msi_machine_coordinate()
@@ -605,10 +615,9 @@ class MainApplication(tk.Tk):
     def add_teaching_point(self, event):
         """Add a teaching point to the canvas"""
         clicked_image = self.find_clicked_image(event)
-        assert isinstance(clicked_image, XrayImage) or isinstance(clicked_image, MsiImage), (
-            "You need to click on an xray image"
-            "or a MSI image to add a "
-            "teaching point")
+        if not isinstance(clicked_image, XrayImage) and not isinstance(clicked_image, MsiImage):
+            messagebox.showerror("Wrong image", "Click an xray image or a MSI image to add a teaching point")
+            return
         if clicked_image is not None:
             clicked_image.add_teaching_point(event, self)
 
@@ -654,12 +663,16 @@ class MainApplication(tk.Tk):
                 except tk.TclError:
                     pass
 
-    def save(self, event=None):
+    def save_layout(self, event=None):
+        """Save the layout of the canvas"""
+        self.save(layout_only=True)
+
+    def save(self, event=None, layout_only=False):
         """Save the current state of the canvas"""
         # get the file path to save the state
-        file_path = filedialog.asksaveasfilename(title="Save workspace",filetypes=[("JSON", "*.json")])
+        file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
         data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,
-        'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
+                        'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
 
         try:
             data_to_save["pair_tp_str"] = self.pair_tp_str
@@ -675,7 +688,12 @@ class MainApplication(tk.Tk):
 
         # save the treeview in json format
         for k, v in self.items.items():
-            data_to_save["items"].append(v.to_json())
+            if not layout_only:
+                data_to_save["items"].append(v.to_json())
+            else:
+                # save the images excluding the msi images
+                if not isinstance(v, MsiImage):
+                    data_to_save["items"].append(v.to_json())
         with open(file_path, "w") as f:
             json.dump(data_to_save, f)
 
@@ -723,21 +741,21 @@ class MainApplication(tk.Tk):
                     vertical_line = VerticalLine.from_json(item, self)
                     self.items[vertical_line.tag] = vertical_line
                     self.bind_events_to_vertical_lines(vertical_line)
-                try:
-                    self.scale_line.append(data["scale_line0"])
-                    self.scale_line.append(data["scale_line1"])
-                    # set the scale line to green
-                    self.canvas.itemconfig(self.scale_line[0], fill="blue")
-                    self.canvas.itemconfig(self.scale_line[1], fill="blue")
-                except KeyError:
-                    logging.debug("No scale line is found")
-                    pass
-                try:
-                    self.sediment_start = data["sediment_start"]
-                    self.canvas.itemconfig(self.sediment_start, fill="green")
-                except KeyError:
-                    logging.debug("No sediment start is found")
-                    pass
+            try:
+                self.scale_line.append(data["scale_line0"])
+                self.scale_line.append(data["scale_line1"])
+                # set the scale line to green
+                self.canvas.itemconfig(self.scale_line[0], fill="blue")
+                self.canvas.itemconfig(self.scale_line[1], fill="blue")
+            except KeyError:
+                logging.debug("No scale line is found")
+                pass
+            try:
+                self.sediment_start = data["sediment_start"]
+                self.canvas.itemconfig(self.sediment_start, fill="green")
+            except KeyError:
+                logging.debug("No sediment start is found")
+                pass
 
     def export_tps(self, file_path):
         """Export the teaching points to a json file"""
@@ -759,6 +777,43 @@ class MainApplication(tk.Tk):
                 matched_items.append(self.canvas.gettags(item))
         return matched_items
 
+    def calc_depth_for_all_tps(self):
+        """calculate the depth for all the teaching points"""
+        if self.sediment_start is None:
+            messagebox.showerror("Error", "No sediment start is found")
+            return
+        if self.cm_per_pixel is None:
+            messagebox.showerror("Error", "No cm_per_pixel is found")
+            return
+        user_choice1 = messagebox.askyesno("Warning",
+                                           "This will overwrite the current depth of the teaching points,"
+                                           " are you sure?")
+        user_choice2 = messagebox.askyesno("Warning",
+                                           "If you have moved the xray images after setting the teaching points, "
+                                           "the depth will be incorrect, are you sure?")
+
+        if user_choice1 and user_choice2:
+            for k, v in self.items.items():
+                if isinstance(v, TeachableImage):
+                    try:
+                        for px_coords, values in v.teaching_points.items():
+                            depth = abs(self.canvas.coords(self.sediment_start)[0] - px_coords[0]) * self.cm_per_pixel
+                            _tmp = list(values)
+                            _tmp[2] = depth
+                            v.teaching_points[px_coords] = tuple(_tmp)
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error: {e}")
+                    try:
+                        for px_coords, values in v.teaching_points_px_coords.items():
+                            depth = abs(self.canvas.coords(self.sediment_start)[0] - px_coords[0]) * self.cm_per_pixel
+                            _tmp = list(values)
+                            _tmp[2] = depth
+                            v.teaching_points_px_coords[px_coords] = tuple(_tmp)
+                    except AttributeError:
+                        pass
+
+            messagebox.showinfo("Done", "The depth for all the teaching points are calculated")
+
     def reset_tp(self):
         """
         Reset the teaching points
@@ -779,11 +834,13 @@ class MainApplication(tk.Tk):
             tps = self.find_wildcard('tp_')
             logging.debug(f"tps: {tps}")
             for tp in tps:
-                self.canvas.delete(tp)
-            logging.debug("Deleting teaching points from the canvas successfully")
+                try:
+                    self.canvas.delete(tp[0])
+                except IndexError:
+                    self.canvas.delete(tp)
         except AttributeError:
-            logging.debug("No teaching points found")
             pass
+        messagebox.showinfo("Done", "All the teaching points are removed")
 
         # clear the tree view
         try:

@@ -2,13 +2,12 @@ import logging
 import os.path
 import re
 import sqlite3
+from tkinter import messagebox
 
 import numpy as np
 import pandas as pd
 
 from scripts.parser import extract_mzs
-import tkinter as tk
-from tkinter import messagebox
 
 
 def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=1, min_int=10000):
@@ -50,7 +49,7 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
     # joint the coords and df on 'spot_name'
     df = pd.merge(coords, df, on='spot_name')
     # only keep the successful spectrum, where both GDGT_0 and GDGT_5 are present
-    #TODO: record this value somewhere other than log
+    # TODO: record this value somewhere other than log
     logging.debug(f"Successful rate: {df.dropna().shape[0] / df.shape[0]:.2f}")
     return df
 
@@ -112,7 +111,8 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
     for path in exported_txt_path:
         if os.path.exists(path):
             single_exported_txt_path = path
-            df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr, min_int=min_int)
+            df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr,
+                                  min_int=min_int)
             # save the dataframe
             # append save_path with index if there are multiple exported_txt_path
             if len(exported_txt_path) > 1:
@@ -131,13 +131,15 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
             df_1d = pd.DataFrame({'d': depth_1d, 'ratio': ratio_1d, 'horizon_count': horizon_count})
             # save the 1d depth profile
             if len(exported_txt_path) > 1:
-                _save_path_1d = save_path_1d.replace('.csv', f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
+                _save_path_1d = save_path_1d.replace('.csv',
+                                                     f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
             else:
                 _save_path_1d = save_path_1d
             df_1d.to_csv(_save_path_1d, index=False)
 
     # create a tkinter messagebox to show the user it's done and add an ok button to close the window
     messagebox.showinfo("Done", "The downcore profile has been successfully created")
+
 
 # The following function is for the command line interface, not used in the GUI
 # def get_depth_profile():

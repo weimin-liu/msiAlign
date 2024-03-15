@@ -1,7 +1,7 @@
+import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
 from tkinter.ttk import Combobox
-import logging
 
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, LinescanImage, MsiImage
@@ -37,6 +37,7 @@ class MenuBar:
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Save workspace", command=self.app.save, accelerator="Ctrl+S")
         self.app.bind("<Control-s>", self.app.save)
+        self.file_menu.add_command(label="Save layout", command=self.app.save_layout)
         self.file_menu.add_command(label="Load workspace", command=self.app.load, accelerator="Ctrl+L")
         self.app.bind("<Control-l>", self.app.load)
         self.file_menu.add_separator()
@@ -63,9 +64,7 @@ class MenuBar:
         self.view_menu.add_command(label="Toggle TP View", command=self.tg_tp_view)
         # update the teaching points view
         self.view_menu.add_command(label="Update TP View", command=self.update_tp_view)
-        self.view_menu.add_separator()
-        # a simple way to view the BLOB data in the database
-        self.view_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
+
 
         # Add 'Calc' menu
         self.calc_menu = tk.Menu(self.menubar, tearoff=0)
@@ -93,17 +92,19 @@ class MenuBar:
         self.dev_menu.add_command(label="Set TP Size", command=self.app.set_tp_size)
         # move all teaching points to the top of the canvas
         self.dev_menu.add_command(label="Move All TPs to Top", command=self.app.move_all_tps_to_top)
+        self.dev_menu.add_command(label="Export TPs", command=self.export_tps)
+        # calculate the depth for all teaching points
+        self.dev_menu.add_command(label="Calc Depth for All TPs", command=self.app.calc_depth_for_all_tps)
         self.dev_menu.add_separator()
         # lock all the images
         self.dev_menu.add_command(label="Lock All Images", command=self.app.lock_all)
         self.dev_menu.add_separator()
         self.dev_menu.add_command(label="MSI Machine Coord", command=self.app.calc_msi_machine_coordinate)
+        self.dev_menu.add_separator()
+        # a simple way to view the BLOB data in the database
+        self.dev_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
 
-        # Add 'Export' menu
-        self.export_menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label="Export", menu=self.export_menu)
-        # Add 'Export TPs' to the export menu
-        self.export_menu.add_command(label="Export TPs", command=self.export_tps)
+
 
         # Add 'Help' menu
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
@@ -147,7 +148,8 @@ class MenuBar:
 
     def add_images(self, event=None):
         """Load the images from the file paths"""
-        file_paths = filedialog.askopenfilenames(title="Select image files", filetypes=[("Image files", "*.png *.jpg *.tif")])
+        file_paths = filedialog.askopenfilenames(title="Select image files",
+                                                 filetypes=[("Image files", "*.png *.jpg *.tif")])
         for file_path in file_paths:
             for k, v in self.app.items.items():
                 try:
@@ -157,16 +159,16 @@ class MenuBar:
                     pass
             if self.app.n_xray * self.app.n_linescan == 0:
                 # let the user choose if input image is an xray image(x) or a linescan image(l) or an msi image (m)
-                image_type = simpledialog.askstring("Image Type",
-                                                    "Is this an xray image(x) or a linescan image(l) or an msi image "
-                                                    "(m)?")
-                if image_type == "x":
+                image_type = messagebox.askyesnocancel(
+                    "Image Type", "Is this an xray image(yes) or a linescan image(no) or an msi image(cancel)?"
+                )  # if the user cancels, the image is an msi image
+                if image_type:
                     self.app.n_xray += 1
                     loaded_image = XrayImage.from_path(file_path)
-                elif image_type == "l":
+                elif image_type is False:
                     self.app.n_linescan += 1
                     loaded_image = LinescanImage.from_path(file_path)
-                elif image_type == "m":
+                elif image_type is None:
                     loaded_image = MsiImage.from_path(file_path)
                 else:
                     messagebox.showerror("Error", "You need to choose an image type")
@@ -235,7 +237,7 @@ class MenuBar:
             messagebox.showerror("Error", "You need to draw two vertical lines to calculate the scale")
             raise ValueError("You need to draw two vertical lines to calculate the scale")
         elif len(self.app.scale_line) > 2:
-            messagebox.showerror("Error", "You have drawn more than two vertical lines")
+            messagebox.showerror("Error", f"You have drawn more than two vertical lines:{self.app.scale_line} ")
             raise ValueError("You have drawn more than two vertical lines")
         else:
             # calculate the distance between the two scale lines
@@ -306,7 +308,11 @@ def calc_depth_profile():
     exported_txt_path = tk.Entry(window)
     exported_txt_path.grid(row=0, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename(title='Select exported txt',filetypes=[("Plain text files","*.txt")]) + ';')).grid(row=0, column=2,sticky='nsew')
+              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename(title='Select exported txt',
+                                                                                          filetypes=[(
+                                                                                                     "Plain text files",
+                                                                                                     "*.txt")]) + ';')).grid(
+        row=0, column=2, sticky='nsew')
 
     # sqlite_db_path
     tk.Label(window, text="Sqlite db path:").grid(row=1, column=0, sticky='nsew')
@@ -314,9 +320,9 @@ def calc_depth_profile():
     sqlite_db_path.grid(row=1, column=1, sticky='nsew')
     tk.Button(window, text="Select",
               command=lambda: sqlite_db_path.insert(tk.END, filedialog.askopenfilename(
-                    title='Select sqlite db', filetypes=[("SQLite files", "*.db")]
+                  title='Select sqlite db', filetypes=[("SQLite files", "*.db")]
               ))).grid(row=1, column=2,
-                                                                                                sticky='nsew')
+                       sticky='nsew')
 
     # target_cmpds, able to add multiple target compounds, using a text box, and a button to add a new target
     # compound with name and m/z
@@ -417,15 +423,8 @@ def stitch_1d():
     dfs = [pd.read_csv(file_path) for file_path in file_paths]
     df = pd.concat(dfs, axis=0, ignore_index=True)
     df.to_csv(save_path, index=False)
-    # pop up a window to show it is done
-    window = tk.Toplevel()
-    window.title("Stitch 1D")
-    text = tk.Text(window)
-    text.insert(tk.END, f"1D downcore profiles have been stitched together and saved to {save_path}")
-    text.pack()
-    # add an ok button to close the window
-    tk.Button(window, text="OK", command=window.destroy).pack()
-    window.mainloop()
+    messagebox.showinfo("Stitch 1D", f"1D downcore profiles have been stitched together and saved to {save_path}")
+
 
 
 def about():
