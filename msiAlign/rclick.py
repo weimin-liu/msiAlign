@@ -46,20 +46,35 @@ class RightClickOnLine(RightClickMenu):
     def set_scale_line(self, item):
         """tag the scale line with 'scale_line'"""
         # change the color of the scale line to blue
-        self.app.canvas.itemconfig(item, fill="blue")
+
         self.app.items[item].label = "scale_line"
         self.app.scale_line.append(item)
+        try:
+            self.app.canvas.itemconfig(item, fill="blue")
+        except Exception as e:
+            logging.debug(e)
+            pass
 
     def set_sediment_start(self, item):
         """tag the vertical line with 'sediment_start'"""
-        self.app.canvas.itemconfig(item, fill="green")
         # label the line with 'sediment_start'
         self.app.items[item].label = "sediment_start_line"
         self.app.sediment_start = item
+        try:
+            self.app.canvas.itemconfig(item, fill="green")
+        except Exception as e:
+            logging.debug(e)
+            pass
 
     def delete_line(self, item):
         """delete the vertical line"""
         self.app.items[item].rm(self.app)
+        # if it's the scale line, remove it from the scale_line list
+        if item in self.app.scale_line:
+            self.app.scale_line.remove(item)
+        # if it's the sediment start line, remove it from the sediment_start
+        if item == self.app.sediment_start:
+            self.app.sediment_start = None
 
 
 class RightClickOnImage(RightClickMenu):

@@ -3,11 +3,11 @@
 - The main branch always contains the most up-to-date version. You can always download the main branch, install the package in `requirements.txt` and run `msiAlign.py`;
 - For the latest binary you can always get from [here](https://github.com/weimin-liu/msiAlign/releases/latest). For now, you will get warning that it's a trojan and will be deleted, it's due to an issue with pyinstaller (e.g. reported [here](https://stackoverflow.com/questions/43777106/program-made-with-pyinstaller-now-seen-as-a-trojan-horse-by-avg), [here](https://stackoverflow.com/questions/64788656/exe-file-made-with-pyinstaller-being-reported-as-a-virus-threat-by-windows-defen) and [here](https://github.com/pyinstaller/pyinstaller/issues/5854)). It's **False Positive**, and you need to allow it to run in your antivirus program. It might be solved in later versions...
 
-# Known bugs:
+# Known bugs (ticked means fixed):
 
-- [ ] Special vertical lines (e.g. sediment start, scale lines) may not be properly deleted 
-- [ ] If the images are moved after the teaching points are added, the teaching points coordinates are not properly updated
-- [ ] When duplicate images are added, the image will be re-added to the canvas instead of popping up a warning
+- [x] Special vertical lines (e.g. sediment start, scale lines) may not be properly deleted 
+- [x] If the images are moved after the teaching points are added, the teaching points coordinates are not properly updated
+- [x] When duplicate images are added, the image will be re-added to the canvas instead of popping up a warning
 
 # How to use
 

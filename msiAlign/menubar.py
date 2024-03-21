@@ -1,7 +1,7 @@
 import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
-
+import os
 from msiAlign.downcore_profile import calc_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, LinescanImage, MsiImage
@@ -109,7 +109,7 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v1.0.1", command=about)
+        self.help_menu.add_command(label="v1.0.2", command=about)
         self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
@@ -154,8 +154,9 @@ class MenuBar:
         for file_path in file_paths:
             for k, v in self.app.items.items():
                 try:
-                    if v.path == file_path:
+                    if k == os.path.basename(file_path):
                         messagebox.showerror("Error", f"{file_path} has already been loaded")
+                        return
                 except AttributeError:
                     pass
             if self.app.n_xray * self.app.n_linescan == 0:
@@ -297,5 +298,5 @@ def report_issue():
 
 
 def about():
-    messagebox.showinfo("About", "msiAlign v1.0.1\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
+    messagebox.showinfo("About", "msiAlign v1.0.2\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
                                  "optimized by Weimin Liu")

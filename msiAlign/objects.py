@@ -221,6 +221,12 @@ class TeachableImage(LoadedImage):
                 draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
             for old_key, new_key in zip(old_keys, new_keys):
                 self.teaching_points[new_key] = self.teaching_points.pop(old_key)
+                # if it is an MSI image, update the teaching point coordinates in the MSI image
+                try:
+                    self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
+                except Exception as e:
+                    logging.error(e)
+                    pass
 
     def update_teaching_points(self, app, offset_x, offset_y):
         old_keys = []
@@ -237,6 +243,12 @@ class TeachableImage(LoadedImage):
                 draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
             for old_key, new_key in zip(old_keys, new_keys):
                 self.teaching_points[new_key] = self.teaching_points.pop(old_key)
+                # if it is an MSI image, update the teaching point coordinates in the MSI image
+                try:
+                    self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
+                except Exception as e:
+                    logging.error(e)
+                    pass
 
     def add_teaching_point(self, event, app):
         canvas_x, canvas_y = app.canvas.canvasx(event.x), app.canvas.canvasy(event.y)
