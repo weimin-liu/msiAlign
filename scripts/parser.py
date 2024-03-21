@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0):
+def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0, normalization=False):
     """
     extract one m/z value from one spectrum
     :param target_mz:   the m/z value to be extracted
@@ -12,6 +12,14 @@ def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0):
     :param min_snr: the minimum signal-to-noise ratio
     :return:       the m/z value, intensity and signal-to-noise ratio
     """
+    if normalization == "TIC":
+        factor = np.sum(spec[:, 1])
+    elif normalization == "median":
+        factor = np.nanmedian(spec[:, 1])
+    elif not normalization:
+        factor = 1.0
+    else:
+        raise ValueError("normalization should be either 'TIC', 'median' or False")
     # sort the spectrum by intensity
     spec = spec[spec[:, 1].argsort()[::-1]]
     # find the index of the highest intensity peak within the tolerance
@@ -19,13 +27,14 @@ def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0):
                 & (spec[:, 0] <= target_mz + tol / 2)
                 & (spec[:, 1] >= min_int)
                 & (spec[:, 2] >= min_snr)]
+    # if there is no peak within the tolerance, return nan
     if spec.shape[0] == 0:
         return np.nan, np.nan, np.nan
     else:
-        return spec[0, 0], spec[0, 1], spec[0, 2]
+        return spec[0, 0], spec[0, 1]/factor, spec[0, 2]
 
 
-def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0):
+def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normalization=False):
     """
     this is the legacy function to read the txt file exported from Bruker DataAnalysis, and
     extract the target m/z values and intensities for all spectra from the txt file
@@ -72,7 +81,7 @@ def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0):
     for i in range(len(spot_names)):
         spec = np.array([mzs[i], intensities[i], snrs[i]]).T
         for j in range(len(target_mz)):
-            mz[i, j], intensity[i, j], snr[i, j] = extract_mz(target_mz[j], spec, tol, min_int, min_snr)
+            mz[i, j], intensity[i, j], snr[i, j] = extract_mz(target_mz[j], spec, tol, min_int, min_snr, normalization)
     df = pd.DataFrame({'spot_name': spot_names})
     for i in range(len(target_mz)):
         df['mz_' + mz_names[i]] = mz[:, i]

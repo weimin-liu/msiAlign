@@ -10,14 +10,35 @@ import pandas as pd
 from scripts.parser import extract_mzs
 
 
-def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=1, min_int=10000):
+def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=1, min_int=10000,
+                     normalization=False) -> pd.DataFrame:
+    """"""
     # parse the spectrum file name from the path
     spec_file_name = os.path.basename(DA_txt_path).replace('.txt', '')
-    # extract the target compounds from exported_txt_path
-    df = extract_mzs(target_cmpds, DA_txt_path, tol=tol, min_snr=min_snr, min_int=min_int)
-
     # connect to the sqlite database
     conn = sqlite3.connect(db_path)
+
+    # test if spec_file_name is in the metadata table
+    query = f'''
+    SELECT spec_id
+    FROM metadata
+    WHERE spec_file_name = '{spec_file_name}'
+    '''
+
+    if not conn.execute(query).fetchall():
+        # get the first and last spot number from the txt file
+        spec_file_name = pair_txt_spec_on_first_last_spotnumber(db_path, DA_txt_path)
+        if spec_file_name is None:
+            messagebox.showerror("Error", "The spectrum file name does not exist in the database. It's very likely"
+                                          "that the da export file is not correctly named. Make sure the file name is the "
+                                          "same as the spectrum file name in the database")
+            return
+        else:
+            logging.info(f"The spectrum file name is {spec_file_name} for {DA_txt_path}")
+
+    # extract the target compounds from exported_txt_path
+    df = extract_mzs(target_cmpds, DA_txt_path, tol=tol, min_snr=min_snr, min_int=min_int, normalization=normalization)
+
     # create a view using the spec_id from both tables, spec_file_name from table metadata, spot_name from metadata, and
     # xray_array and linescan_array from table transformation
     conn.execute('''
@@ -35,7 +56,13 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
     FROM dataview
     WHERE spec_file_name = '{spec_file_name}'
     '''
-    coords = conn.execute(query).fetchall()[0]
+    try:
+        coords = conn.execute(query).fetchall()[0]
+    except IndexError:
+        messagebox.showerror("Error", "The spectrum file name does not exist in the database. It's very likely"
+                                      "that the da export file is not correctly named. Make sure the file name is the "
+                                      "same as the spectrum file name in the database")
+        return
     spot_names = coords[0].split(',')
     # in every spot_names, only preserve string 'R(0-9)+X(0-9)+Y(0-9)+'
     spot_names = [re.findall(r'R\d+X\d+Y\d+', spot_name)[0] for spot_name in spot_names]
@@ -87,6 +114,66 @@ def to_1d(df, chunks, how: str):
 def depth2time(depth, age_model):
     # convert depth to time using the age model
     return np.interp(depth, age_model['depth'], age_model['age'])
+
+
+def extract_first_last_spotnumber(txt_path):
+    """Extract the first and last spot number from the txt file"""
+    with open(txt_path, 'r') as f:
+        lines = f.readlines()
+        # get the first line starting with 'R\d+X\d+Y\d+'
+        for line in lines:
+            if re.match(r'R\d+X\d+Y\d+', line):
+                first_spot_number = re.findall(r'R\d+X\d+Y\d+', line)[0]
+                break
+        # get the last line starting with 'R\d+X\d+Y\d+'
+        for line in lines[::-1]:
+            if re.match(r'R\d+X\d+Y\d+', line):
+                last_spot_number = re.findall(r'R\d+X\d+Y\d+', line)[0]
+                break
+    return first_spot_number, last_spot_number
+
+
+def pair_txt_spec_on_first_last_spotnumber(sqlite_db_path, txt_path):
+    """Pair txt files and spectra on first and last spot number"""
+    import sqlite3
+    # check if there is 'first_spot_number' and 'last_spot_number' column in the metadata table
+    conn = sqlite3.connect(sqlite_db_path)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(metadata)")
+    columns = cursor.fetchall()
+    # if there is no 'first_spot_number' and 'last_spot_number' column in the metadata table, add them as strings
+    if 'first_spot_number' not in columns and 'last_spot_number' not in columns:
+        cursor.execute("ALTER TABLE metadata ADD COLUMN first_spot_number TEXT")
+        cursor.execute("ALTER TABLE metadata ADD COLUMN last_spot_number TEXT")
+        # read the metdata table
+        cursor.execute("SELECT spec_id, spot_name FROM metadata")
+        metadata = cursor.fetchall()
+        metadata = pd.DataFrame(metadata, columns=['spec_id', 'spot_name'])
+        # only keep the R(\d+)X(\d+)Y(\d+) part
+        metadata['first_spot_number'] = metadata['spot_name'].str.split(',').str[0]
+        metadata['first_spot_number'] = metadata['first_spot_number'].apply(
+            lambda x: re.findall(r'(R\d+X\d+Y\d+)', x)[0] if x else None)
+        metadata['last_spot_number'] = metadata['spot_name'].str.split(',').str[-1]
+        metadata['last_spot_number'] = metadata['last_spot_number'].apply(
+            lambda x: re.findall(r'(R\d+X\d+Y\d+)', x)[0] if x else None)
+        # update the metadata table
+        for i, row in metadata.iterrows():
+            cursor.execute(
+                f"UPDATE metadata SET first_spot_number = '{row['first_spot_number']}' WHERE spec_id = {row['spec_id']}")
+            cursor.execute(
+                f"UPDATE metadata SET last_spot_number = '{row['last_spot_number']}' WHERE spec_id = {row['spec_id']}")
+        conn.commit()
+
+    # for each txt file, extract the first and last spot number
+    first_spot_number, last_spot_number = extract_first_last_spotnumber(txt_path)
+    spec_name = cursor.execute(
+        f"SELECT spec_file_name FROM metadata WHERE first_spot_number = '{first_spot_number}' AND last_spot_number = '{last_spot_number}'").fetchall()
+    # assert that there is only one spectrum with the same first and last spot number
+    assert len(spec_name) == 1, f"There are {len(spec_name)} spectra with the same first and last spot number"
+    if spec_name:
+        return spec_name[0][0]
+    else:
+        return None
 
 
 def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,

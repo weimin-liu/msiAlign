@@ -704,12 +704,13 @@ class MainApplication(tk.Tk):
             data = json.load(f)
             try:
                 self.cm_per_pixel = data["cm_per_pixel"]
-                # print the cm_per_pixel on canvas
-                # create a text on the canvas to display the scale
-                text = tk.Text(self.canvas, height=1, width=20)
-                text.insert(tk.END, f"1cm = {int(1 / self.cm_per_pixel)} pixel")
-                text.config(state="disabled")
-                self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
+                if self.cm_per_pixel is not None:
+                    # print the cm_per_pixel on canvas
+                    # create a text on the canvas to display the scale
+                    text = tk.Text(self.canvas, height=1, width=20)
+                    text.insert(tk.END, f"1cm = {int(1 / self.cm_per_pixel)} pixel")
+                    text.config(state="disabled")
+                    self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
             except KeyError:
                 logging.debug("No cm_per_pixel is found")
                 pass
