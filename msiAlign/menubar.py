@@ -151,7 +151,15 @@ class MenuBar:
         """Load the images from the file paths"""
         file_paths = filedialog.askopenfilenames(title="Select image files",
                                                  filetypes=[("Image files", "*.png *.jpg *.tif")])
+
         for file_path in file_paths:
+            # check if the image path has blank space
+            if " " in file_path:
+                # make a copy of the file with no blank space
+                new_file_path = file_path.replace(" ", "_")
+                os.rename(file_path, new_file_path)
+                messagebox.showinfo("Info", f"Renamed {file_path} to {new_file_path}")
+                file_path = new_file_path
             for k, v in self.app.items.items():
                 try:
                     if k == os.path.basename(file_path):
