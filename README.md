@@ -54,9 +54,9 @@ You can view the coordinates of the teaching points by clicking View - Update TP
 
 ## Why is it not working?
 
-### I can't drag the images around:
-- Make sure the image file names don't contain spaces. It's best that the file names don't contain any special characters except underscore.
-
 ### For `Calc depth profile`:
 - The exported DA txt should be named exactly the same as the spectrum data, for example, if the spectrum data is named `xxxx.d`. The DA txt should be named `xxxx.d.txt`.
 
+## TODO:
+
+- [ ] Add a fallback for the case when neither name matching and first-last-spot-number matching works, ask for user input (spec_id or spec_file_name).

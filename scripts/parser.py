@@ -89,6 +89,47 @@ def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normali
         df['snr_' + mz_names[i]] = snr[:, i]
     return df
 
+def extract_special(txt_path, mz_range:str='full', min_int=1000, min_snr=0):
+    # read the txt file
+    with open(txt_path, 'r') as f:
+        lines = f.readlines()
+    # get all spectra, each spectrum is a line and starts with 'R**X**Y**'
+    lines = [line.strip() for line in lines]
+    lines = [line for line in lines if line.startswith('R')]
+
+    # get the spot name for each spectrum
+    spot_names = [line.split(';')[0] for line in lines]
+    # get the m/z values for each spectrum, it's after every two ';'
+    mzs = [line.split(';')[2::3] for line in lines]
+    # convert everything to floats
+    mzs = [[round(float(mz), 4) for mz in mz_list] for mz_list in mzs]
+    intensities = [line.split(';')[3::3] for line in lines]
+    intensities = [[float(intensity) for intensity in intensity_list] for intensity_list in intensities]
+    snrs = [line.split(';')[4::3] for line in lines]
+    snrs = [[float(snr) for snr in snr_list] for snr_list in snrs]
+    result = np.zeros((len(spot_names), 3))
+    for i in range(len(spot_names)):
+        spec = np.array([mzs[i], intensities[i], snrs[i]]).T
+        # filter out the peaks with intensity less than min_int
+        spec = spec[spec[:, 1] >= min_int]
+        # filter out the peaks with signal-to-noise ratio less than min_snr
+        spec = spec[spec[:, 2] >= min_snr]
+        if not mz_range == 'full':
+            mz_range = [float(mz) for mz in mz_range.split('-')]
+            spec = spec[(spec[:, 0] >= mz_range[0]) & (spec[:, 0] <= mz_range[1])]
+        tic = np.sum(spec[:, 1])
+        median = np.nanmedian(spec[:, 1])
+        # weighted m/z
+        weight_mz = np.sum(spec[:, 0] * spec[:, 1]) / tic
+
+        result[i, 0] = tic
+        result[i, 1] = median
+        result[i, 2] = weight_mz
+    df = pd.DataFrame({'spot_name': spot_names})
+    df['tic'] = result[:, 0]
+    df['median'] = result[:, 1]
+    df['weight_mz'] = result[:, 2]
+    return df
 
 def extract_all(txt_path, min_int=10000, min_snr=1, peak_th=0.1, min_member=0.1, tol=10):
     # test if module 'mfe' is installed

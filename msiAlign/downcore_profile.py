@@ -19,12 +19,12 @@ def calc_depth_profile():
     exported_txt_path = tk.Entry(window)
     exported_txt_path.grid(row=0, column=1, sticky='nsew')
     tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END, filedialog.askopenfilename(title='Select exported txt',
-                                                                                          filetypes=[(
-                                                                                                     "Plain text files",
-                                                                                                     "*.txt")]) + ';')).grid(
+              command=lambda: exported_txt_path.insert(tk.END,
+                                                       ';'.join(filedialog.askopenfilenames(title='Select exported txt',
+                                                                                            filetypes=[(
+                                                                                                       "Plain text files",
+                                                                                                       "*.txt")])) + ';')).grid(
         row=0, column=2, sticky='nsew')
-
     # sqlite_db_path
     tk.Label(window, text="Sqlite db path:").grid(row=1, column=0, sticky='nsew')
     sqlite_db_path = tk.Entry(window)

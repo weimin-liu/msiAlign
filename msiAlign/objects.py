@@ -44,7 +44,7 @@ class LoadedImage:
     def from_path(cls, img_path):
         self = cls()
         self.img_path = img_path
-        self._tag = os.path.basename(img_path)
+        self._tag = os.path.basename(img_path).replace(" ", "_")
         self.img = Image.open(img_path)
         self.thumbnail = self.img.copy()
         self.thumbnail.thumbnail(self.thumbnail_size)
@@ -112,7 +112,7 @@ class LoadedImage:
         self.thumbnail = self.img.copy()
         self.thumbnail.thumbnail(self.thumbnail_size)
         self.tk_img = ImageTk.PhotoImage(self.thumbnail)
-        self._tag = os.path.basename(self.img_path)
+        self._tag = os.path.basename(self.img_path).replace(" ", "_")
         self.create_im_on_canvas(app)
         return self
 

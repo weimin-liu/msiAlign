@@ -667,6 +667,28 @@ class MainApplication(tk.Tk):
         """Save the layout of the canvas"""
         self.save(layout_only=True)
 
+    def reset(self, no_warning=False):
+        if not no_warning:
+            userchoice=tk.messagebox.showwarning("Warning", "This will reset the canvas, are you sure?")
+        else:
+            userchoice = 'yes'
+        if userchoice == 'yes':
+            # reset the canvas
+            self.canvas.delete("all")
+            self.items = {}
+            self.cm_per_pixel = None
+            self.database_path = None
+            self.pair_tp_str = None
+            self.scale_line = []
+            self.sediment_start = None
+            self.n_xray = 0
+            self.n_linescan = 0
+            self.pair_tp_str = None
+            self.solvers_xray = {}
+            self.solvers_depth = {}
+        else:
+            pass
+
     def save(self, event=None, layout_only=False):
         """Save the current state of the canvas"""
         # get the file path to save the state
@@ -702,6 +724,8 @@ class MainApplication(tk.Tk):
         file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
         with open(file_path, "r") as f:
             data = json.load(f)
+            # reset the canvas
+            self.reset(no_warning=True)
             try:
                 self.cm_per_pixel = data["cm_per_pixel"]
                 if self.cm_per_pixel is not None:

@@ -7,7 +7,7 @@ from tkinter import messagebox
 import numpy as np
 import pandas as pd
 
-from scripts.parser import extract_mzs
+from scripts.parser import extract_mzs, extract_special
 
 
 def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=1, min_int=10000,
@@ -29,15 +29,53 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
         # get the first and last spot number from the txt file
         spec_file_name = pair_txt_spec_on_first_last_spotnumber(db_path, DA_txt_path)
         if spec_file_name is None:
-            messagebox.showerror("Error", "The spectrum file name does not exist in the database. It's very likely"
-                                          "that the da export file is not correctly named. Make sure the file name is the "
-                                          "same as the spectrum file name in the database")
-            return
+            # try to find the spec_file_name in the metadata table based on the txt file name if 'export_da_name' exists
+            query = f'''
+            SELECT spec_file_name
+            FROM metadata
+            WHERE export_da_name = '{os.path.basename(DA_txt_path)}'
+            '''
+            spec_file_name = conn.execute(query).fetchall()
+            if len(spec_file_name) == 1:
+                spec_file_name = spec_file_name[0][0]
+            else:
+                # ask the user if they want to manually type the spectrum file name
+                messagebox.askyesno("Error", "The spectrum file name does not exist in the database. Do you want to manually type"
+                                             "the spectrum file name?")
+                if messagebox.askyesno:
+                    while True:
+                        spec_file_name = input("Please enter the spectrum file name: ")
+                        # test if entry contains 'spec_file_name' in the metadata table
+                        query = f'''
+                        SELECT spec_id
+                        FROM metadata
+                        WHERE '{spec_file_name}' in spec_file_name
+                        '''
+                        # test if the spec_file_name is unique
+                        if len(conn.execute(query).fetchall()) == 1:
+                            # get the spec_file_name from the query
+                            spec_file_name = conn.execute(query).fetchall()[0][0]
+                            # write the txt file name to export_da_name in the metadata table for future reference, create a new
+                            # column if it does not exist
+                            conn.execute("PRAGMA table_info(metadata)")
+                            columns = conn.fetchall()
+                            columns = [col[1] for col in columns]
+                            if 'export_da_name' not in columns:
+                                conn.execute("ALTER TABLE metadata ADD COLUMN export_da_name TEXT")
+                            conn.execute(f"UPDATE metadata SET export_da_name = '{os.path.basename(DA_txt_path)}' WHERE spec_file_name = '{spec_file_name}'")
+                            conn.commit()
+                            break
+                        else:
+                            messagebox.showerror("Error", "The spectrum file name does not exist in the database or is not unique")
+
         else:
             logging.info(f"The spectrum file name is {spec_file_name} for {DA_txt_path}")
 
     # extract the target compounds from exported_txt_path
-    df = extract_mzs(target_cmpds, DA_txt_path, tol=tol, min_snr=min_snr, min_int=min_int, normalization=normalization)
+    if target_cmpds is None:
+        df = extract_special(DA_txt_path, mz_range='full',min_snr=min_snr)
+    else:
+        df = extract_mzs(target_cmpds, DA_txt_path, tol=tol, min_snr=min_snr, min_int=min_int, normalization=normalization)
 
     # create a view using the spec_id from both tables, spec_file_name from table metadata, spot_name from metadata, and
     # xray_array and linescan_array from table transformation
@@ -100,15 +138,37 @@ def get_chunks(depth, horizon_size, min_n_samples=10):
     return chunks
 
 
-def to_1d(df, chunks, how: str):
+def to_1d(df, chunks, how:str):
     # get the mean of the intensities in each chunk
     df_1d = []
     for chunk in chunks:
         start_index, end_index = chunk
         data = df.iloc[start_index:end_index]
-        # perform the calculation according to how string
-        df_1d.append(eval(how))
+        int_val = data[[col for col in data.columns if 'int' in col or 'tic' in col or 'median' in col or 'weight_mz' in col]]
+        valid_val = int_val.count()
+        valid_val = valid_val >= 10
+        if how == 'mean':
+            v = int_val.mean()
+            # replace the values with 0 if there are less than 10 non nan values
+            v[~valid_val] = 0
+            df_1d.append(v)
+        elif how == 'sum':
+            v = int_val.sum()
+            v[~valid_val] = 0
+            df_1d.append(v)
+        elif how == 'median':
+            v = int_val.median()
+            v[~valid_val] = 0
+            df_1d.append(v)
+        else:
+            try:
+                # perform the calculation according to how string
+                df_1d.append(eval(how))
+            except Exception as e:
+                logging.error(f"Error: {e}")
+                return
     return df_1d
+
 
 
 def depth2time(depth, age_model):
@@ -141,6 +201,7 @@ def pair_txt_spec_on_first_last_spotnumber(sqlite_db_path, txt_path):
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(metadata)")
     columns = cursor.fetchall()
+    columns = [col[1] for col in columns]
     # if there is no 'first_spot_number' and 'last_spot_number' column in the metadata table, add them as strings
     if 'first_spot_number' not in columns and 'last_spot_number' not in columns:
         cursor.execute("ALTER TABLE metadata ADD COLUMN first_spot_number TEXT")
@@ -215,7 +276,10 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
             depth_1d = to_1d(df, chunks, "data['d'].mean()")
             ratio_1d = to_1d(df, chunks, how)
             horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
-            df_1d = pd.DataFrame({'d': depth_1d, 'ratio': ratio_1d, 'horizon_count': horizon_count})
+            df_1d = pd.DataFrame({'d': depth_1d,
+                                  'ratio': ratio_1d,
+                                  'horizon_count': horizon_count,
+                                  'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d)})
             # save the 1d depth profile
             if len(exported_txt_path) > 1:
                 _save_path_1d = save_path_1d.replace('.csv',
