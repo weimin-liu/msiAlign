@@ -623,12 +623,11 @@ class MainApplication(tk.Tk):
 
     def add_metadata(self):
         """Add metadata to the app"""
-        if self.database_path is None:
-            file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
-            if file_path:
-                self.database_path = file_path
-            else:
-                messagebox.showerror("No file path is given")
+        file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
+        if file_path:
+            self.database_path = file_path
+        else:
+            messagebox.showerror("No file path is given")
         # connect to the sqlite database
         import sqlite3
         conn = sqlite3.connect(file_path)
