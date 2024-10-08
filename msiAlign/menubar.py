@@ -4,7 +4,7 @@ from tkinter import filedialog, simpledialog, ttk, messagebox
 import os
 from msiAlign.downcore_profile import calc_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
-from msiAlign.objects import XrayImage, LinescanImage, MsiImage
+from msiAlign.objects import XrayImage, MsiImage
 
 
 def how_to_use():
@@ -82,6 +82,8 @@ class MenuBar:
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Dev", menu=self.dev_menu)
+        self.menubar.entryconfig("Dev", state="disabled")
+
         # Add labels for all the teaching points
         self.dev_menu.add_command(label="Auto add TP Labels", command=self.add_tp_labels)
 
@@ -160,23 +162,17 @@ class MenuBar:
                         return
                 except AttributeError:
                     pass
-            if self.app.n_xray * self.app.n_linescan == 0:
-                # let the user choose if input image is an xray image(x) or a linescan image(l) or an msi image (m)
-                image_type = messagebox.askyesnocancel(
-                    "Image Type", "Is this an xray image(yes) or a linescan image(no) or an msi image(cancel)?"
-                )  # if the user cancels, the image is an msi image
-                if image_type:
-                    self.app.n_xray += 1
-                    loaded_image = XrayImage.from_path(file_path)
-                elif image_type is False:
-                    self.app.n_linescan += 1
-                    loaded_image = LinescanImage.from_path(file_path)
-                elif image_type is None:
-                    loaded_image = MsiImage.from_path(file_path)
-                else:
-                    messagebox.showerror("Error", "You need to choose an image type")
-            else:
+            # let the user choose if input image is a reference image or a MSI image
+            image_type = messagebox.askyesnocancel(
+                "Image Type", "Is this a reference image (i.e., xray, linescan...) or not (i.e., MSI image)?"
+            )  # if the user cancels, the image is an msi image
+            if image_type:
+                loaded_image = XrayImage.from_path(file_path)
+            elif image_type is False:
                 loaded_image = MsiImage.from_path(file_path)
+            else:
+                messagebox.showerror("Error", "You need to choose an image type")
+
             logging.debug(f"Loaded image: {loaded_image}")
             loaded_image.create_im_on_canvas(self.app)
             self.app.items[loaded_image.tag] = loaded_image

@@ -12,7 +12,7 @@ import tqdm
 
 from msiAlign.func import CorSolver, sort_points_clockwise, sort_points_clockwise_by_keys
 from msiAlign.menubar import MenuBar
-from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
+from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, TeachableImage
 from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 
 
@@ -25,8 +25,6 @@ class MainApplication(tk.Tk):
                             filemode='a')
 
         self.geometry("1200x800")
-        self.n_xray = 0
-        self.n_linescan = 0
         self.canvas = None
         self.right_click_on_tp = None
         self.right_click_on_image = None
@@ -680,8 +678,6 @@ class MainApplication(tk.Tk):
             self.pair_tp_str = None
             self.scale_line = []
             self.sediment_start = None
-            self.n_xray = 0
-            self.n_linescan = 0
             self.pair_tp_str = None
             self.solvers_xray = {}
             self.solvers_depth = {}
@@ -692,8 +688,7 @@ class MainApplication(tk.Tk):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
-        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,
-                        'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
+        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,}
 
         try:
             data_to_save["pair_tp_str"] = self.pair_tp_str
@@ -745,11 +740,6 @@ class MainApplication(tk.Tk):
                 self.pair_tp_str = data["pair_tp_str"]
             except KeyError:
                 pass
-            try:
-                self.n_xray = data["n_xray"]
-                self.n_linescan = data["n_linescan"]
-            except KeyError:
-                pass
 
             for item in data["items"]:
                 if "MsiImage" in item["type"]:
@@ -757,9 +747,6 @@ class MainApplication(tk.Tk):
                     self.items[loaded_image.tag] = loaded_image
                 elif "XrayImage" in item["type"]:
                     loaded_image = XrayImage.from_json(item, self)
-                    self.items[loaded_image.tag] = loaded_image
-                elif "LinescanImage" in item["type"]:
-                    loaded_image = LinescanImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
                 elif item["type"] == "VerticalLine":
                     vertical_line = VerticalLine.from_json(item, self)
