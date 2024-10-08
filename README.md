@@ -33,10 +33,12 @@ Add another vertical line at the start of the sediment. Right click on the line 
 Add teaching points by shift+left clicking on the canvas. The program will automatically calculate the distance from the sediment start to the teaching point.
 
 ### Calculate everything else:
-click Calc - Machine to Real World, you will be asked to attach the metadata database, and then you will be asked if you want to manually or automatically pair the teaching points. If you choose manually, you need to pair the teaching points when asked by the program. If you choose automatically, the program will automatically pair the teaching points in a clockwise order. Otherwise choose manually and follow the instructions.
-If you choose the manual routine, you need to pair the teaching points when asked by the program. The input should like below. Basically, each line is a pair of teaching points, and they are separated by whitespace.
+- click Calc - Machine to Real World, you will be asked to attach the metadata database, and then you will be asked if you want to manually or automatically pair the teaching points. If you choose manually, you need to pair the teaching points when asked by the program. If you choose automatically, the program will automatically pair the teaching points in a clockwise order. Otherwise choose manually and follow the instructions.
+- If you choose the manual routine (which is the more versatile routine), you need to pair the teaching points when asked by the program. The input should like below. Basically, each line is a pair of teaching points, and they are separated by whitespace.
+  
   ![Screenshot 2024-03-14 at 14.21.28.png](imgs%2FScreenshot%202024-03-14%20at%2014.21.28.png)
-After that, click 'Submit' button and the program will calculate the transformation matrix and the transformed coordinates, the results will be saved in the database. If you save the workspace now, the paired teaching points will also be saved, and next time you can just click fill to re-fill the pairs.
+  
+- After that, click 'Submit' button and the program will calculate the transformation matrix and the transformed coordinates, the results will be saved in the database. If you save the workspace now, the paired teaching points will also be saved, and next time you can just click fill to re-fill the pairs.
 
 ## Useful functions:
 ### Save and load the canvas:
