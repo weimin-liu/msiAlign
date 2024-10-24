@@ -124,6 +124,69 @@ def calc_depth_profile():
     tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
 
 
+def calc_xrf_depth_profile():
+    """Calculate the depth profile"""
+    # popup a window to ask for the parameters
+    window = tk.Toplevel()
+    # pack the window
+    window.title("Calc Downcore Profile (xrf)")
+    # ask for the parameters
+    # exported_txt_path, using file selection dialog, left is the text, right is the button for file selection
+    tk.Label(window, text="Transformed csv path(s):").grid(row=0, column=0, sticky='nsew')
+
+    exported_txt_path = tk.Entry(window)
+    exported_txt_path.grid(row=0, column=1, sticky='nsew')
+    tk.Button(window, text="Select",
+              command=lambda: exported_txt_path.insert(tk.END,
+                                                       ';'.join(filedialog.askopenfilenames(title='Select transformed csv',
+                                                                                            filetypes=[(
+                                                                                                       "Plain text files",
+                                                                                                       "*.csv")])) + ';')).grid(
+        row=0, column=2, sticky='nsew')
+    # how
+    tk.Label(window, text="Ratios (sep by ','):").grid(row=3, column=0, sticky='nsew')
+    how = tk.Entry(window)
+    how.insert(tk.END, "Ca/Ti,Fe/Ti")
+    how.grid(row=3, column=1, sticky='nsew')
+
+    # min_n_samples
+    tk.Label(window, text="Min-n-spots/horizon:").grid(row=7, column=0, sticky='nsew')
+    min_n_samples = tk.Entry(window)
+    min_n_samples.insert(tk.END, "10")
+    min_n_samples.grid(row=7, column=1, sticky='nsew')
+
+    # horizon size
+    tk.Label(window, text="Horizon size (μm):").grid(row=8, column=0, sticky='nsew')
+    horizon_size = tk.Entry(window)
+    horizon_size.insert(tk.END, "500")
+    horizon_size.grid(row=8, column=1, sticky='nsew')
+
+    # save 1d depth profile to a csv file
+    tk.Label(window, text="Save 1D to:").grid(row=10, column=0, sticky='nsew')
+    save_path_1d = tk.Entry(window)
+    save_path_1d.insert(tk.END, "1D_res.csv")
+    save_path_1d.grid(row=10, column=1, sticky='nsew')
+    tk.Button(window, text="Select",
+              command=lambda: [save_path_1d.delete(0, tk.END),
+                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename(
+                                   title="Save 1d result as", filetypes=[("CSV file", '*.csv')]
+                               ))]).grid(row=10, column=2, sticky='nsew')
+    # Only rows with Entry widgets get expanded
+    for i in range(3):
+        window.grid_columnconfigure(i, weight=1 if i == 1 else 0)  # Only the column with Entry widgets gets expanded
+
+    # a button to start the calculation
+    tk.Button(window, text="Start",
+              command=lambda: get_depth_profile_from_gui(exported_txt_path.get(), None, None,
+                                                         how.get(), None, None, None,
+                                                         min_n_samples.get(),
+                                                         horizon_size.get(), None, save_path_1d.get())).grid(
+        row=11, column=0, columnspan=3, sticky='nsew')
+
+    # add another button to stitch the 1d downcore profiles together
+    tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
+
+
 def stitch_1d():
     # ask for the 1d downcore profiles
     file_paths = filedialog.askopenfilenames(title="Select 1D downcore profiles", filetypes=[("CSV files", "*.csv")])

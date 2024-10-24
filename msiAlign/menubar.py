@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
 import os
-from msiAlign.downcore_profile import calc_depth_profile
+from msiAlign.downcore_profile import calc_depth_profile, calc_xrf_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, MsiImage
 
@@ -77,7 +77,13 @@ class MenuBar:
         # convert the machine coordinate to real world coordinate
         self.calc_menu.add_command(label="Machine to Real World", command=self.app.click_machine_to_real_world)
         self.calc_menu.add_separator()
+
+        self.calc_menu.add_command(label="Calc Transformation Matrix", command=self.pair_tps)
+        self.calc_menu.add_command(label="Prepare for XRF", command=self.app.prepare_for_xrf)
+
+
         self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
+        self.calc_menu.add_command(label="Downcore Profile (xrf)", command=calc_xrf_depth_profile)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
@@ -106,7 +112,6 @@ class MenuBar:
         self.dev_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
 
 
-
         # Add 'Help' menu
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
@@ -115,6 +120,7 @@ class MenuBar:
         self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
+
 
     def add_tp_labels(self):
         """Add labels for all the teaching points"""
@@ -283,6 +289,8 @@ class MenuBar:
         # create a button to fill in the pair of teaching points
         fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))
         fill_button.grid(row=3, column=0, sticky="nsew")
+
+
 
 
 def report_issue():
