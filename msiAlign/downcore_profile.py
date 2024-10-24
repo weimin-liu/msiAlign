@@ -144,9 +144,9 @@ def calc_xrf_depth_profile():
                                                                                                        "*.csv")])) + ';')).grid(
         row=0, column=2, sticky='nsew')
     # how
-    tk.Label(window, text="Ratios (sep by ','):").grid(row=3, column=0, sticky='nsew')
+    tk.Label(window, text="Ratios (sep by ';'):").grid(row=3, column=0, sticky='nsew')
     how = tk.Entry(window)
-    how.insert(tk.END, "Ca/Ti,Fe/Ti")
+    how.insert(tk.END, "Ca/Ti;Fe/Ti")
     how.grid(row=3, column=1, sticky='nsew')
 
     # min_n_samples
