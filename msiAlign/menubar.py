@@ -76,13 +76,11 @@ class MenuBar:
         # calculate the transformation matrix
         # self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
         # convert the machine coordinate to real world coordinate
-        self.calc_menu.add_command(label="Machine to Real World", command=self.app.click_machine_to_real_world)
+        self.calc_menu.add_command(label="Prep MSI", command=self.app.click_machine_to_real_world)
+
+        self.calc_menu.add_command(label="Prep XRF", command=lambda: self.pair_tps(xrf=True))
+
         self.calc_menu.add_separator()
-
-        self.calc_menu.add_command(label="Calc Transformation Matrix", command=self.pair_tps)
-        self.calc_menu.add_command(label="Prepare for XRF", command=self.app.prepare_for_xrf)
-
-
         self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
         self.calc_menu.add_command(label="Downcore Profile (xrf)", command=calc_xrf_depth_profile)
 
@@ -279,7 +277,7 @@ class MenuBar:
         else:
             messagebox.showinfo("Export Teaching Points", "No file path is given")
 
-    def pair_tps(self, auto=False):
+    def pair_tps(self, auto=False,xrf=False):
         """pair the teaching points from xray images and msi images"""
         # create a pop-up text window to input the pair of teaching points
         popup = tk.Toplevel()
@@ -296,7 +294,9 @@ class MenuBar:
 
         # create a button to submit the pair of teaching points
         submit_button = tk.Button(popup, text="Submit",
-                                  command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"), auto=auto))
+                                  command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"),
+                                                                    auto=auto,
+                                                                    xrf=xrf))
         submit_button.grid(row=2, column=0, sticky="nsew")
         # create a button to fill in the pair of teaching points
         fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))

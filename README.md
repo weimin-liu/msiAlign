@@ -48,6 +48,8 @@ you can save and load the canvas by clicking File - Save Workspace and File - Lo
 ### View the coordinates of the teaching points:
 You can view the coordinates of the teaching points by clicking View - Update TP View. The coordinates will be shown on the side of the canvas.
 
+### More functions hidden in the dev menu, use "Ctrl + p" to show the activate the dev menu.
+
 ## Why is it not working?
 
 ### For `Calc depth profile`:

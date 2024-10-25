@@ -415,7 +415,7 @@ class MainApplication(tk.Tk):
         except AttributeError:
             return ""
 
-    def pair_tps(self, str1, auto=False):
+    def pair_tps(self, str1, auto=False,xrf=False):
         logging.debug(f"input: {str1}")
         self.pair_tp_str = str1
         # remove the leading and trailing white spaces
@@ -474,6 +474,9 @@ class MainApplication(tk.Tk):
 
         if auto:
             self.machine_to_real_world()
+
+        if xrf:
+            self.prepare_for_xrf()
 
     def calc_msi_machine_coordinate(self):
         for k, v in self.items.items():
