@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
 import os
-from msiAlign.downcore_profile import calc_depth_profile, calc_xrf_depth_profile
+from msiAlign.downcore_profile import calc_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, MsiImage
 
@@ -82,7 +82,6 @@ class MenuBar:
 
         self.calc_menu.add_separator()
         self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
-        self.calc_menu.add_command(label="Downcore Profile (xrf)", command=calc_xrf_depth_profile)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
@@ -117,7 +116,6 @@ class MenuBar:
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
         # Add 'About' to the help menu
-        self.help_menu.add_command(label="v1.0.2", command=about)
         self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
@@ -313,7 +311,3 @@ def report_issue():
         messagebox.showinfo("Report an issue",
                             "Please report the issue at https://github.com/weimin-liu/msiAlign/issues")
 
-
-def about():
-    messagebox.showinfo("About", "msiAlign v1.0.2\n Workflow based on previous work by Hinrichs lab\n Rewritten and "
-                                 "optimized by Weimin Liu")
