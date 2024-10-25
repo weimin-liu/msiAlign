@@ -178,7 +178,7 @@ class MenuBar:
                     pass
             # let the user choose if input image is a reference image or a MSI image
             image_type = messagebox.askyesnocancel(
-                "Image Type", "Is this a reference image (i.e., xray, linescan...) or not (i.e., MSI image)?"
+                "Image Type", "Is this a reference image (e.g., xray, linescan...) or not (e.g., MSI, xrf...)?"
             )  # if the user cancels, the image is an msi image
             if image_type:
                 loaded_image = XrayImage.from_path(file_path)
