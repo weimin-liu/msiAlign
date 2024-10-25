@@ -413,24 +413,6 @@ class MsiImage(TeachableImage):
             return
 
 
-class LinescanImage(LoadedImage):
-    """A subclass of LoadedImage that holds the linescan image"""
-
-    def __init__(self):
-        super().__init__()
-
-    def rm(self, app):
-        f = messagebox.askyesno("Remove Linescan Image", "Are you sure you want to remove the linescan image?")
-        if f:
-            # remove the image from the canvas
-            app.canvas.delete(self.tag)
-            # remove from the items dictionary
-            del app.items[self.tag]
-            app.n_linescan -= 1
-        else:
-            return
-
-
 class XrayImage(TeachableImage):
     """A subclass of LoadedImage that holds the xray image"""
 
@@ -444,7 +426,6 @@ class XrayImage(TeachableImage):
             app.canvas.delete(self.tag)
             # remove from the items dictionary
             del app.items[self.tag]
-            app.n_xray -= 1
         else:
             return
 

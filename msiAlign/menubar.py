@@ -2,9 +2,9 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
 import os
-from msiAlign.downcore_profile import calc_depth_profile
+from msiAlign.downcore_profile import calc_depth_profile, calc_xrf_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
-from msiAlign.objects import XrayImage, LinescanImage, MsiImage
+from msiAlign.objects import XrayImage, MsiImage
 
 
 def how_to_use():
@@ -77,11 +77,19 @@ class MenuBar:
         # convert the machine coordinate to real world coordinate
         self.calc_menu.add_command(label="Machine to Real World", command=self.app.click_machine_to_real_world)
         self.calc_menu.add_separator()
+
+        self.calc_menu.add_command(label="Calc Transformation Matrix", command=self.pair_tps)
+        self.calc_menu.add_command(label="Prepare for XRF", command=self.app.prepare_for_xrf)
+
+
         self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
+        self.calc_menu.add_command(label="Downcore Profile (xrf)", command=calc_xrf_depth_profile)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Dev", menu=self.dev_menu)
+        self.menubar.entryconfig("Dev", state="disabled")
+
         # Add labels for all the teaching points
         self.dev_menu.add_command(label="Auto add TP Labels", command=self.add_tp_labels)
 
@@ -104,7 +112,6 @@ class MenuBar:
         self.dev_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
 
 
-
         # Add 'Help' menu
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Help", menu=self.help_menu)
@@ -113,6 +120,7 @@ class MenuBar:
         self.help_menu.add_command(label="How to use", command=how_to_use)
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
+
 
     def add_tp_labels(self):
         """Add labels for all the teaching points"""
@@ -160,23 +168,17 @@ class MenuBar:
                         return
                 except AttributeError:
                     pass
-            if self.app.n_xray * self.app.n_linescan == 0:
-                # let the user choose if input image is an xray image(x) or a linescan image(l) or an msi image (m)
-                image_type = messagebox.askyesnocancel(
-                    "Image Type", "Is this an xray image(yes) or a linescan image(no) or an msi image(cancel)?"
-                )  # if the user cancels, the image is an msi image
-                if image_type:
-                    self.app.n_xray += 1
-                    loaded_image = XrayImage.from_path(file_path)
-                elif image_type is False:
-                    self.app.n_linescan += 1
-                    loaded_image = LinescanImage.from_path(file_path)
-                elif image_type is None:
-                    loaded_image = MsiImage.from_path(file_path)
-                else:
-                    messagebox.showerror("Error", "You need to choose an image type")
-            else:
+            # let the user choose if input image is a reference image or a MSI image
+            image_type = messagebox.askyesnocancel(
+                "Image Type", "Is this a reference image (i.e., xray, linescan...) or not (i.e., MSI image)?"
+            )  # if the user cancels, the image is an msi image
+            if image_type:
+                loaded_image = XrayImage.from_path(file_path)
+            elif image_type is False:
                 loaded_image = MsiImage.from_path(file_path)
+            else:
+                messagebox.showerror("Error", "You need to choose an image type")
+
             logging.debug(f"Loaded image: {loaded_image}")
             loaded_image.create_im_on_canvas(self.app)
             self.app.items[loaded_image.tag] = loaded_image
@@ -287,6 +289,8 @@ class MenuBar:
         # create a button to fill in the pair of teaching points
         fill_button = tk.Button(popup, text="Fill", command=lambda: text.insert(tk.END, self.app.fill_tps_str()))
         fill_button.grid(row=3, column=0, sticky="nsew")
+
+
 
 
 def report_issue():

@@ -13,6 +13,9 @@
 
 ## For those in a hurry
 
+### Create Metadata Database
+Use "File>Crawl Metadata" and navigate to the directory containing the imaging folders (those that end on .i)
+
 ### Add images:
 Use File - Add images to add images to the canvas. You will be asked if the added image is xray (x) or linescan (l) or msi image (m). The first two labels (x and l) are important for the program to work properly and can only be linked to one image each, the m label is not used at the moment. 
 
@@ -29,21 +32,13 @@ Add another vertical line at the start of the sediment. Right click on the line 
 ### Mark the teaching points:
 Add teaching points by shift+left clicking on the canvas. The program will automatically calculate the distance from the sediment start to the teaching point.
 
-### Create Metadata Database
-Use "File>Crawl Metadata" and navigate to the directory containing the imaging folders (those that end on .i)
-
-### Attach  database
-Click File - Attach database and select the database file produced by the above step.
-
-### Get the transformed coordinates:
-Click Calc - Machine to Real World, you will be asked if you want to manually or automatically pair the teaching points
-- Manually: 
-  - Label: if you want to manually pair the teaching points, you need to first label all the teaching points with integer values (right click on the teaching point and select "Label"). Or, to save some time, you can use `Dev` -> `Auto add TP labels` to automatically add integer labels starting from 0 to all teaching points.
-  - Pair: then, you need to pair the teaching points when asked by the program. The input should like below. Basically, each line is a pair of teaching points, and they are seperated by whitespace.
+### Calculate everything else:
+- click Calc - Machine to Real World, you will be asked to attach the metadata database, and then you will be asked if you want to manually or automatically pair the teaching points. If you choose manually, you need to pair the teaching points when asked by the program. If you choose automatically, the program will automatically pair the teaching points in a clockwise order. Otherwise choose manually and follow the instructions.
+- If you choose the manual routine (which is the more versatile routine), you need to pair the teaching points when asked by the program. The input should like below. Basically, each line is a pair of teaching points, and they are separated by whitespace.
+  
   ![Screenshot 2024-03-14 at 14.21.28.png](imgs%2FScreenshot%202024-03-14%20at%2014.21.28.png)
-  - Calculate: click `Submit` button and the program will calculate the transformation matrix and the transformed coordinates, the results will be saved in the database. If you save the workspace now, the paired teaching points will also be saved, and next time you can just click fill to re-fill the pairs.
-- Automatically:
-  - The program will automatically pair the teaching points in a clockwise order, and calculate the transformation matrix and the transformed coordinates.
+  
+- After that, click 'Submit' button and the program will calculate the transformation matrix and the transformed coordinates, the results will be saved in the database. If you save the workspace now, the paired teaching points will also be saved, and next time you can just click fill to re-fill the pairs.
 
 ## Useful functions:
 ### Save and load the canvas:

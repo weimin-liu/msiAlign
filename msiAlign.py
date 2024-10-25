@@ -1,18 +1,21 @@
 import json
 import logging
+import os
 import re
 import sqlite3
 import sys
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk, simpledialog, messagebox
+import matplotlib.pyplot as plt
 
 import numpy as np
+import pandas as pd
 import tqdm
 
 from msiAlign.func import CorSolver, sort_points_clockwise, sort_points_clockwise_by_keys
 from msiAlign.menubar import MenuBar
-from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, LinescanImage, TeachableImage
+from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, TeachableImage
 from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 
 
@@ -25,8 +28,6 @@ class MainApplication(tk.Tk):
                             filemode='a')
 
         self.geometry("1200x800")
-        self.n_xray = 0
-        self.n_linescan = 0
         self.canvas = None
         self.right_click_on_tp = None
         self.right_click_on_image = None
@@ -34,6 +35,7 @@ class MainApplication(tk.Tk):
         self.title('msiAlign')
         self.items = {}
         self.create_canvas()
+        self.xrf_folder = None
 
         self.database_path = None
 
@@ -331,6 +333,7 @@ class MainApplication(tk.Tk):
         """delete all the text items on the canvas labeled 'tp_labels'"""
         self.canvas.delete('tp_labels')
 
+
     def calc_transformation_matrix(self, auto=False):
         """ solve the transformation among MSi coordinates, xray pixel coordinates, and line scan depth"""
         # get all fixed points from xray teaching points
@@ -507,6 +510,96 @@ class MainApplication(tk.Tk):
         else:
             self.menu.pair_tps(auto=True)
 
+    def set_xrf_folder(self):
+        """set the folder to store the xrf images"""
+        folder_path = filedialog.askdirectory(title="Select a folder that contains all the XRF data")
+        if folder_path:
+            self.xrf_folder = folder_path
+            self.read_all_elements()
+        else:
+            messagebox.showerror("No folder path is given")
+
+    def read_all_elements(self):
+        """read all the elements from the xrf images"""
+        if self.xrf_folder is None:
+            self.set_xrf_folder()
+        if self.xrf_folder:
+            # list all the folders in the xrf folder
+            xrf_folders = [f for f in os.listdir(self.xrf_folder) if os.path.isdir(os.path.join(self.xrf_folder, f))]
+            self.elements = {}
+            for a_folder in xrf_folders:
+                # get all the xrf images in the folder (.txt files without 'Video' in the name)
+                xrf_files = [f for f in os.listdir(os.path.join(
+                    self.xrf_folder, a_folder
+                )) if f.endswith('.txt') and 'Video' not in f]
+                logging.debug(f"xrf_files: {xrf_files}")
+                element = {}
+                # read all the elements from the xrf images
+                # find the changing parts and the common parts of all names
+                common_part = os.path.commonprefix(xrf_files)
+                logging.debug(f"common_part: {common_part}")
+                changing_parts = [f.replace(common_part, '').replace('.txt', '') for f in xrf_files]
+                logging.debug(f"changing_parts: {changing_parts}")
+                for i, f in enumerate(xrf_files):
+                    element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
+                # convert the elements to a dataframe, with x and y and the element names as the columns
+                for k, v in element.items():
+                    # convert the wide format to long format
+                    v = v.reset_index()
+                    v = pd.melt(v,id_vars=['index'], var_name='y', value_name=k)
+                    v = v.rename(columns={'index': 'x'})
+                    element[k] = v
+                # concatenate all the elements to a single dataframe, with x,y as the common keys
+                self.elements[a_folder] = pd.concat(list(element.values()), axis=1).loc[:,~pd.concat(list(element.values()), axis=1).columns.duplicated()]
+
+    def mask_xrf_data(self,by='Fe'):
+        """mask the xrf data by the element Fe"""
+        if self.elements is None:
+            self.read_all_elements()
+        # mask the xrf data by the element Fe
+        # do a k means clustering on the Fe data
+        from sklearn.cluster import KMeans
+        kmeans = KMeans(n_clusters=2)
+        for a_folder in self.elements.keys():
+            kmeans.fit(self.elements[a_folder][by].values.reshape(-1, 1))
+            # get the cluster centers
+            cluster_centers = kmeans.cluster_centers_
+            # get the cluster labels
+            cluster_labels = kmeans.labels_
+            # get the cluster with the higher mean
+            cluster = np.argmax(cluster_centers)
+
+            # mask the xrf data by the cluster
+            self.elements[a_folder]['mask'] = cluster_labels == cluster
+            # save the mask as a image in the folder,use a discrete colormap
+            plt.imshow(self.elements[a_folder].pivot(
+                index='x', columns='y', values='mask'
+            ), cmap='viridis')
+            plt.axis('off')
+            plt.savefig(os.path.join(self.xrf_folder, a_folder, 'mask.png'))
+            plt.close()
+            # drop the 0 mask
+            self.elements[a_folder] = self.elements[a_folder][self.elements[a_folder]['mask']]
+
+    def transform_xrf_data(self):
+        for a_folder in self.elements.keys():
+            # loop through the solver_xray keys
+            for k, v in self.solvers_depth.items():
+                # test if the key image is in the folder
+                if k in [i.replace(' ','_') for i in os.listdir(os.path.join(self.xrf_folder,a_folder))]:
+                    self.elements[a_folder]['d'] = v.transform(self.elements[a_folder][['y', 'x']].values)[:,0]
+            # save the transformed data to the folder
+            self.elements[a_folder].to_csv(os.path.join(self.xrf_folder, a_folder, 'transformed.csv'), index=False)
+
+    def prepare_for_xrf(self):
+        """prepare the app for XRF data"""
+        # add the xrf data to the app
+        self.read_all_elements()
+        # mask the xrf data by the element Fe
+        self.mask_xrf_data()
+        # transform the xrf data to the real world
+        self.transform_xrf_data()
+
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
         # ask for the sqlite file to read the metadata
@@ -680,8 +773,6 @@ class MainApplication(tk.Tk):
             self.pair_tp_str = None
             self.scale_line = []
             self.sediment_start = None
-            self.n_xray = 0
-            self.n_linescan = 0
             self.pair_tp_str = None
             self.solvers_xray = {}
             self.solvers_depth = {}
@@ -692,8 +783,7 @@ class MainApplication(tk.Tk):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
-        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,
-                        'n_xray': self.n_xray, 'n_linescan': self.n_linescan}
+        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,}
 
         try:
             data_to_save["pair_tp_str"] = self.pair_tp_str
@@ -745,11 +835,6 @@ class MainApplication(tk.Tk):
                 self.pair_tp_str = data["pair_tp_str"]
             except KeyError:
                 pass
-            try:
-                self.n_xray = data["n_xray"]
-                self.n_linescan = data["n_linescan"]
-            except KeyError:
-                pass
 
             for item in data["items"]:
                 if "MsiImage" in item["type"]:
@@ -757,9 +842,6 @@ class MainApplication(tk.Tk):
                     self.items[loaded_image.tag] = loaded_image
                 elif "XrayImage" in item["type"]:
                     loaded_image = XrayImage.from_json(item, self)
-                    self.items[loaded_image.tag] = loaded_image
-                elif "LinescanImage" in item["type"]:
-                    loaded_image = LinescanImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
                 elif item["type"] == "VerticalLine":
                     vertical_line = VerticalLine.from_json(item, self)
