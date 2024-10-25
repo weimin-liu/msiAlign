@@ -32,7 +32,7 @@ class MainApplication(tk.Tk):
         self.right_click_on_tp = None
         self.right_click_on_image = None
         self.right_click_on_line = None
-        self.title('msiAlign')
+        self.title('Ctrl+O to add images, Shift+click to add teaching points, Ctrl+click to add rulers')
         self.items = {}
         self.create_canvas()
         self.xrf_folder = None
