@@ -11,9 +11,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v1
 
-      - name: Set Default Tag Name to UTC
-        id: tag_name
-        run: echo "::set-output name=tag::v$(date -u +'%Y%m%d%H%M%S')"
+      - name: Set Tag and Release Name to UTC Timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP="v$(date -u +'%Y%m%d%H%M%S')"
+          echo "::set-output name=tag::$TIMESTAMP"
+          echo "::set-output name=release_name::$TIMESTAMP"
       
       - name: Create Release
         id: create_release
@@ -21,8 +24,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name || steps.tag_name.outputs.tag }}  # Uses UTC timestamp if no tag is provided
-          release_name: Release ${{ github.ref_name || steps.tag_name.outputs.tag }}
+          tag_name: ${{ steps.timestamp.outputs.tag }}
+          release_name: Release ${{ steps.timestamp.outputs.release_name }}
           draft: false
           prerelease: false
           
