@@ -2,33 +2,45 @@ name: Build
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
-      
+
 jobs:
   createrelease:
     name: Create Release
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-    - name: Output Release URL File
-      run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
-    - name: Save Release URL File for publish
-      uses: actions/upload-artifact@v4
-      with:
-        name: release_url
-        path: release_url.txt
-        
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Set Tag and Release Name to UTC Timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP="v$(date -u +'%Y%m%d%H%M%S')"
+          echo "::set-output name=tag::$TIMESTAMP"
+          echo "::set-output name=release_name::$TIMESTAMP"
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
+        with:
+          tag_name: ${{ steps.timestamp.outputs.tag }}
+          release_name: Release ${{ steps.timestamp.outputs.release_name }}
+          draft: false
+          prerelease: false
+
+      - name: Output Release URL File
+        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
+
+      - name: Verify Release URL File Exists
+        run: ls -l release_url.txt  # Debugging step to confirm file existence
+      
+      - name: Save Release URL File for publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: release_url
+          path: release_url.txt
+
   build:
     name: Build packages
     needs: createrelease
@@ -39,64 +51,76 @@ jobs:
           - os: macos-latest
             TARGET: macos
             CMD_BUILD: >
-                pip install setuptools --upgrade &&
-                pip install wheel &&
-                pip uninstall pyinstaller -y &&
-                git clone https://github.com/pyinstaller/pyinstaller &&
-                cd pyinstaller/bootloader &&
-                python ./waf all distclean all &&
-                cd ../ &&
-                pip install . &&
-                cd ../ &&
-                pyinstaller --noconsole -F -w -n msiAlign msiAlign.py &&
-                cd dist/ &&
-                zip -r9 msiAlign msiAlign.app/                
+              pip install setuptools --upgrade &&
+              pip install wheel &&
+              pip uninstall pyinstaller -y &&
+              git clone https://github.com/pyinstaller/pyinstaller &&
+              cd pyinstaller/bootloader &&
+              python ./waf all distclean all &&
+              cd ../ &&
+              pip install . &&
+              cd ../ &&
+              pyinstaller --noconsole -F -w -n msiAlign msiAlign.py &&
+              cd dist/ &&
+              zip -r9 msiAlign msiAlign.app/
             OUT_FILE_NAME: msiAlign.zip
             ASSET_MIME: application/zip
+
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: >
-                pip install setuptools --upgrade &&
-                pip install wheel &&
-                pip uninstall pyinstaller -y &&
-                git clone https://github.com/pyinstaller/pyinstaller &&
-                cd pyinstaller/bootloader &&
-                python ./waf all distclean all --target-arch=64bit &&
-                cd ../ &&
-                pip install . &&
-                cd ../ &&
-                pyinstaller --noconsole -F -w -n msiAlign msiAlign.py
+              pip install setuptools --upgrade &&
+              pip install wheel &&
+              pip uninstall pyinstaller -y &&
+              git clone https://github.com/pyinstaller/pyinstaller &&
+              cd pyinstaller/bootloader &&
+              python ./waf all distclean all --target-arch=64bit &&
+              cd ../ &&
+              pip install . &&
+              cd ../ &&
+              pyinstaller --noconsole -F -w -n msiAlign msiAlign.py
             OUT_FILE_NAME: msiAlign.exe
             ASSET_MIME: application/vnd.microsoft.portable-executable
+
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt        
-    - name: Build with pyinstaller for ${{matrix.TARGET}}
-      run: ${{matrix.CMD_BUILD}}
-    - name: Load Release URL File from release job
-      uses: actions/download-artifact@v1
-      with:
-        name: release_url
-    - name: Get Release File Name & Upload URL
-      id: get_release_info
-      shell: bash
-      run: |
-        value=`cat release_url/release_url.txt`
-        echo ::set-output name=upload_url::$value        
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
-      with:
-        upload_url: ${{ steps.get_release_info.outputs.upload_url }}
-        asset_path: ./dist/${{ matrix.OUT_FILE_NAME}}
-        asset_name: ${{ matrix.OUT_FILE_NAME}}
-        asset_content_type: ${{ matrix.ASSET_MIME}}
+      - uses: actions/checkout@v1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt        
+
+      - name: Build with pyinstaller for ${{ matrix.TARGET }}
+        run: ${{ matrix.CMD_BUILD }}
+
+      - name: Load Release URL File from release job
+        uses: actions/download-artifact@v4
+        with:
+          name: release_url
+          path: ./  # Ensure file downloads to the root directory
+
+      - name: Verify Release URL File Downloaded
+        run: ls -l release_url.txt  # Debugging step to confirm download
+
+      - name: Get Release File Name & Upload URL
+        id: get_release_info
+        shell: bash
+        run: |
+          value=$(cat release_url.txt)
+          echo "::set-output name=upload_url::$value"
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release_info.outputs.upload_url }}
+          asset_path: ./dist/${{ matrix.OUT_FILE_NAME }}
+          asset_name: ${{ matrix.OUT_FILE_NAME }}
+          asset_content_type: ${{ matrix.ASSET_MIME }}
