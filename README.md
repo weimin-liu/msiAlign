@@ -29,7 +29,7 @@
 ### Preparing for Analysis
 - **MSI Analysis**: Select `Calc > Prep MSI`, attach the metadata, and pair teaching points manually or automatically. Submit to calculate transformations.
 - **XRF Analysis**: Select `Calc > Prep XRF`. Pair teaching points and submit to calculate transformations. Specify XRF data path when asked to generate depth and mask data, which is saved in the same directory as the XRF data.
-- Note the format of Teaching Points pairs: ![TP Pair Format](./imgs/Screenshot 2024-03-14 at 14.21.28.png)
+- Note the format of Teaching Points pairs: ![TP Pair Format](./imgs/Screenshot%202024-03-14%20at%2014.21.28.png)
 
 
 ### Depth Profile
