@@ -1,7 +1,7 @@
 name: Build
 
 on:
-  workflow_dispatch:  # Allows manual trigger of the workflow
+  workflow_dispatch:
 
 jobs:
   createrelease:
@@ -28,10 +28,13 @@ jobs:
           release_name: Release ${{ steps.timestamp.outputs.release_name }}
           draft: false
           prerelease: false
-          
+
       - name: Output Release URL File
         run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
 
+      - name: Verify Release URL File Exists
+        run: ls -l release_url.txt  # Debugging step to confirm file existence
+      
       - name: Save Release URL File for publish
         uses: actions/upload-artifact@v4
         with:
@@ -99,13 +102,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release_url
+          path: ./  # Ensure file downloads to the root directory
+
+      - name: Verify Release URL File Downloaded
+        run: ls -l release_url.txt  # Debugging step to confirm download
 
       - name: Get Release File Name & Upload URL
         id: get_release_info
         shell: bash
         run: |
-          value=$(cat release_url/release_url.txt)
-          echo ::set-output name=upload_url::$value        
+          value=$(cat release_url.txt)
+          echo "::set-output name=upload_url::$value"
 
       - name: Upload Release Asset
         id: upload-release-asset
