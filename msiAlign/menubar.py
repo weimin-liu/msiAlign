@@ -24,6 +24,7 @@ class MenuBar:
     def __init__(self, app):
         self.app = app
 
+
         # create a menubar
         self.menubar = tk.Menu(self.app)
         self.app.config(menu=self.menubar)
@@ -89,6 +90,8 @@ class MenuBar:
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Dev", menu=self.dev_menu)
         self.menubar.entryconfig("Dev", state="disabled")
+        # bind Ctrl+p to enable the dev menu
+        self.app.bind("<Control-p>", self.enable_dev_menu)
 
         # Add labels for all the teaching points
         self.dev_menu.add_command(label="Auto add TP Labels", command=self.add_tp_labels)
@@ -121,6 +124,15 @@ class MenuBar:
         # Add an 'Issue' to the help menu
         self.help_menu.add_command(label="Report an issue", command=report_issue)
 
+
+    def enable_dev_menu(self, event=None):
+        """Enable the dev menu"""
+        self.menubar.entryconfig("Dev", state="normal")
+        # add a message pop-up to show the dev menu is enabled
+        messagebox.showinfo("Dev Menu", "Developer menu is enabled")
+        # unbind the Ctrl+p to prevent the dev menu from being enabled again
+        self.app.unbind("<Control-p>")
+        return "break"
 
     def add_tp_labels(self):
         """Add labels for all the teaching points"""

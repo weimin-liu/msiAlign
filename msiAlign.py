@@ -37,6 +37,7 @@ class MainApplication(tk.Tk):
         self.create_canvas()
         self.xrf_folder = None
 
+
         self.database_path = None
 
         self.scale_line = []
