@@ -499,7 +499,7 @@ class MainApplication(tk.Tk):
             if userchoice:
                 self.add_metadata()
             else:
-                return
+                messagebox.showerror("Metadata is not added yet")
 
         # calculate the MSI machine coordinate
 
@@ -622,33 +622,38 @@ class MainApplication(tk.Tk):
             try:
                 # check if the transformation table exists
                 c.execute('SELECT * FROM transformation')
+                # purge the transformation table
+                c.execute('DELETE FROM transformation')
+                # delete the transformation table
+                c.execute('DROP TABLE transformation')
+                conn.commit()
             except sqlite3.OperationalError:
                 logging.debug("The transformation table does not exist yet, creating one")
-                # create a transformation table with metadata(spec_id) as the reference key
-                c.execute(
-                    'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
+            # create a transformation table with metadata(spec_id) as the reference key
+            c.execute(
+                'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
+            conn.commit()
+            # read all the spotname from metadata table and convert them to array
+            c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
+            data = c.fetchall()
+            assert len(data) > 0, "No data is found in the metadata table"
+            for row in tqdm.tqdm(data):
+                spec_id, im_name, spot_name = row
+                spec_id = int(spec_id)
+                spot_name = eval(spot_name)
+                # apply the transformation to the spot_name
+                spot_name = [re.findall(r'X(\d+)Y(\d+)', s) for s in spot_name]
+                # flatten the list
+                spot_name = [item for sublist in spot_name for item in sublist]
+                # convert to an array
+                spot_name = np.array(spot_name)
+                # conver the spotname to int
+                spot_name = spot_name.astype(int)
+                # write the spotnames to the transformation table as a blob
+                c.execute('INSERT INTO transformation (spec_id, msi_img_file_name, spot_array) VALUES (?, ?, ?)',
+                          (spec_id, im_name, spot_name.tobytes()))
                 conn.commit()
-                # read all the spotname from metadata table and convert them to array
-                c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
-                data = c.fetchall()
-                assert len(data) > 0, "No data is found in the metadata table"
-                for row in tqdm.tqdm(data):
-                    spec_id, im_name, spot_name = row
-                    spec_id = int(spec_id)
-                    spot_name = eval(spot_name)
-                    # apply the transformation to the spot_name
-                    spot_name = [re.findall(r'X(\d+)Y(\d+)', s) for s in spot_name]
-                    # flatten the list
-                    spot_name = [item for sublist in spot_name for item in sublist]
-                    # convert to an array
-                    spot_name = np.array(spot_name)
-                    # conver the spotname to int
-                    spot_name = spot_name.astype(int)
-                    # write the spotnames to the transformation table as a blob
-                    c.execute('INSERT INTO transformation (spec_id, msi_img_file_name, spot_array) VALUES (?, ?, ?)',
-                              (spec_id, im_name, spot_name.tobytes()))
-                    conn.commit()
-                    # store_blob_info(conn, 'spot_array', spot_name.dtype, spot_name.shape)
+                # store_blob_info(conn, 'spot_array', spot_name.dtype, spot_name.shape)
 
             c.execute('SELECT spec_id, msi_img_file_name, spot_array FROM transformation')
             data = c.fetchall()
@@ -658,14 +663,14 @@ class MainApplication(tk.Tk):
                 spot_array = np.frombuffer(spot_array, dtype=int).reshape(-1, 2)
                 logging.debug(f"spec_id: {spec_id}, im_name: {im_name}, spot_array: {spot_array}")
                 # apply the transformation to the spot_array
-                if im_name in self.solvers_xray.keys():
-                    xray_array = self.solvers_xray[im_name].transform(spot_array)
+                if im_name in self.solvers_xray.keys() or im_name.replace(' ', '_') in self.solvers_xray.keys():
+                    xray_array = self.solvers_xray[im_name.replace(' ','_')].transform(spot_array)
                     xray_array_dtype = xray_array.dtype
                     logging.debug(f"xray_array_dtype: {xray_array_dtype}")
                     # store_blob_info(conn, 'xray_array', xray_array_dtype, xray_array.shape)
                     xray_array_shape = xray_array.shape
                     logging.debug(f"xray_array_shape: {xray_array_shape}")
-                    linescan_array = self.solvers_depth[im_name].transform(spot_array)
+                    linescan_array = self.solvers_depth[im_name.replace(' ', '_')].transform(spot_array)
                     # line_scan_dtype = linescan_array.dtype
                     # linescan_array_shape = linescan_array.shape
                     # store_blob_info(conn, 'linescan_array', line_scan_dtype, linescan_array_shape)
@@ -674,7 +679,7 @@ class MainApplication(tk.Tk):
                     c.execute('UPDATE transformation SET linescan_array = ? WHERE spec_id = ?',
                               (linescan_array.tobytes(), spec_id))
                 else:
-                    logging.debug(f"{im_name} is not in the solvers_xray.keys()")
+                    logging.debug(f"{im_name.replace(' ', '_')} is not in the solvers_xray.keys()")
             # store the blob info to the blob_info table
 
             conn.commit()
