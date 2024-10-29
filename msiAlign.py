@@ -639,6 +639,9 @@ class MainApplication(tk.Tk):
             data = c.fetchall()
             assert len(data) > 0, "No data is found in the metadata table"
             for row in tqdm.tqdm(data):
+                # log once in a while
+                if row[0] % 100 == 0:
+                    logging.debug(f"spec_id: {row[0]}")
                 spec_id, im_name, spot_name = row
                 spec_id = int(spec_id)
                 spot_name = eval(spot_name)
