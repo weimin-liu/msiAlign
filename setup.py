@@ -7,7 +7,6 @@ setup(
     url='https://github.com/weimin-liu/msiAlign',
     install_requires=[
         'numpy',
-        'tqdm',
         'pillow',
     ]
 )

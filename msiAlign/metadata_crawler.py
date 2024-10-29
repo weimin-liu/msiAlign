@@ -5,9 +5,6 @@ import shutil
 # create a namedtuple for the metadata
 from collections import namedtuple
 from tkinter import filedialog, simpledialog, messagebox
-
-import tqdm
-
 from msiAlign.func import get_image_file_from_mis, get_px_rect_from_mis, get_msi_rect_from_imaginginfo
 
 Metadata = namedtuple("Metadata", ["spec_file_name",
@@ -84,7 +81,7 @@ class MetadataCrawler:
         assert len(self.metadata) > 0, "No metadata found"
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
-        for k, v in tqdm.tqdm(self.metadata.items(), desc="Copying msi images"):
+        for k, v in self.metadata.items():
             # copy the msi image to the target directory
             shutil.copy(v.msi_img_file_path, os.path.join(target_dir, v.msi_img_file_name))
 

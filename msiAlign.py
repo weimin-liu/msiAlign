@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
-import tqdm
 
 from msiAlign.func import CorSolver, sort_points_clockwise, sort_points_clockwise_by_keys
 from msiAlign.menubar import MenuBar
@@ -638,7 +637,7 @@ class MainApplication(tk.Tk):
             c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
             data = c.fetchall()
             assert len(data) > 0, "No data is found in the metadata table"
-            for row in tqdm.tqdm(data):
+            for row in data:
                 # log once in a while
                 if row[0] % 100 == 0:
                     logging.debug(f"spec_id: {row[0]}")
