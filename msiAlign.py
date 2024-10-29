@@ -633,6 +633,7 @@ class MainApplication(tk.Tk):
             c.execute(
                 'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
             conn.commit()
+            logging.debug("The transformation table is created")
             # read all the spotname from metadata table and convert them to array
             c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
             data = c.fetchall()
@@ -654,9 +655,10 @@ class MainApplication(tk.Tk):
                           (spec_id, im_name, spot_name.tobytes()))
                 conn.commit()
                 # store_blob_info(conn, 'spot_array', spot_name.dtype, spot_name.shape)
-
+            logging.debug("The spotnames are written to the transformation table")
             c.execute('SELECT spec_id, msi_img_file_name, spot_array FROM transformation')
             data = c.fetchall()
+            logging.debug(f"data: {data}")
             for row in data:
                 spec_id, im_name, spot_array = row
                 spec_id = int(spec_id)

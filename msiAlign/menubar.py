@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import filedialog, simpledialog, ttk, messagebox
 import os
-from msiAlign.downcore_profile import calc_depth_profile
+from msiAlign.downcore_profile import calc_depth_profile, show_analysis_selector
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import XrayImage, MsiImage
 
@@ -81,7 +81,7 @@ class MenuBar:
         self.calc_menu.add_command(label="Prep XRF", command=lambda: self.pair_tps(xrf=True))
 
         self.calc_menu.add_separator()
-        self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile)
+        self.calc_menu.add_command(label="Downcore Profile", command=show_analysis_selector)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)
