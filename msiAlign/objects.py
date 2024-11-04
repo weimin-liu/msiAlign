@@ -160,6 +160,7 @@ class TeachableImage(LoadedImage):
 
     def __init__(self):
         super().__init__()
+        self.teaching_points_px_coords = None
         self.teaching_points = None  # a list of teaching points
         self.tp_size = 3  # the size of the teaching point on the canvas
         self.show_sediment_start_line_not_set_warning = True

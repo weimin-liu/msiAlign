@@ -248,8 +248,6 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
     min_n_samples = int(min_n_samples) if min_n_samples is not None else None
     horizon_size = float(horizon_size) / 10000 if horizon_size is not None else None # convert to cm
 
-
-
     if target_cmpds is not None:
         # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
         target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
@@ -268,6 +266,7 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
     if exported_txt_path[-1] == '':
         exported_txt_path = exported_txt_path[:-1]
     # find the first existing path
+    df_1ds = []
     for path in exported_txt_path:
         if os.path.exists(path):
             single_exported_txt_path = path
@@ -316,6 +315,11 @@ def get_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, 
             else:
                 _save_path_1d = save_path_1d
             df_1d.to_csv(_save_path_1d, index=False)
+            df_1ds.append(df_1d)
+    # concatenate all the 1d depth profiles
+    if len(df_1ds) > 1:
+        df_1ds = pd.concat(df_1ds, axis=0, ignore_index=True)
+        df_1ds.to_csv(save_path_1d.replace('.csv', '_all.csv'), index=False)
 
     # create a tkinter messagebox to show the user it's done and add an ok button to close the window
     messagebox.showinfo("Done", "The downcore profile has been successfully created")

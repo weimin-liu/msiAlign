@@ -119,9 +119,6 @@ def calc_depth_profile():
                                                          horizon_size.get(), save_path.get(), save_path_1d.get())).grid(
         row=11, column=0, columnspan=3, sticky='nsew')
 
-    # add another button to stitch the 1d downcore profiles together
-    tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
-
 
 def calc_xrf_depth_profile():
     """Calculate the depth profile"""
@@ -181,19 +178,3 @@ def calc_xrf_depth_profile():
                                                          min_n_samples.get(),
                                                          horizon_size.get(), None, save_path_1d.get())).grid(
         row=11, column=0, columnspan=3, sticky='nsew')
-
-    # add another button to stitch the 1d downcore profiles together
-    tk.Button(window, text="Stitch 1D", command=lambda: stitch_1d()).grid(row=12, column=0, columnspan=3, sticky='nsew')
-
-
-def stitch_1d():
-    # ask for the 1d downcore profiles
-    file_paths = filedialog.askopenfilenames(title="Select 1D downcore profiles", filetypes=[("CSV files", "*.csv")])
-    # ask for the save path
-    save_path = filedialog.asksaveasfilename(title="Save 1D downcore profiles as", filetypes=[("CSV files", "*.csv")])
-    # stitch the 1d downcore profiles together
-    import pandas as pd
-    dfs = [pd.read_csv(file_path) for file_path in file_paths]
-    df = pd.concat(dfs, axis=0, ignore_index=True)
-    df.to_csv(save_path, index=False)
-    messagebox.showinfo("Stitch 1D", f"1D downcore profiles have been stitched together and saved to {save_path}")
