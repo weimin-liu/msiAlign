@@ -1,6 +1,6 @@
 import logging
 import tkinter as tk
-from tkinter import filedialog, simpledialog, ttk, messagebox
+from tkinter import filedialog, ttk, messagebox
 import os
 from msiAlign.downcore_profile import calc_depth_profile, calc_xrf_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
@@ -70,15 +70,14 @@ class MenuBar:
         self.calc_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Calc", menu=self.calc_menu)
         # Add 'Cm/Px' to the calc menu
-        self.calc_menu.add_command(label="cm/px", command=self.calc_cm_per_px)
+        self.calc_menu.add_command(label="cm/px", command=self.app.calculation_handler.calc_cm_per_px)
         self.calc_menu.add_separator()
         # calculate the MSI machine coordinate
         # calculate the transformation matrix
-        # self.calc_menu.add_command(label="Transformation Matrix", command=self.app.calc_transformation_matrix)
         # convert the machine coordinate to real world coordinate
-        self.calc_menu.add_command(label="Prep MSI", command=self.app.click_machine_to_real_world)
+        self.calc_menu.add_command(label="Prep MSI", command=self.app.calculation_handler.calc_msi)
 
-        self.calc_menu.add_command(label="Prep XRF", command=lambda: self.pair_tps(xrf=True))
+        self.calc_menu.add_command(label="Prep XRF", command=lambda: self.pair_tps_ui(xrf=True))
 
         self.calc_menu.add_separator()
         self.calc_menu.add_command(label="Downcore Profile (MSI)", command=calc_depth_profile)
@@ -92,25 +91,15 @@ class MenuBar:
         self.app.bind("<Control-p>", self.enable_dev_menu)
 
         # Add labels for all the teaching points
-        self.dev_menu.add_command(label="Auto add TP Labels", command=self.add_tp_labels)
-
-        self.dev_menu.add_command(label="Pair TPs", command=self.pair_tps)
-        # Add 'Reset tp' to the dev menu
-        self.dev_menu.add_command(label="Reset TP", command=self.app.reset_tp)
-        self.dev_menu.add_command(label="Set TP Size", command=self.app.set_tp_size)
+        self.dev_menu.add_command(label="Reset TP", command=self.app.dev_ops_handler.reset_tp)
+        self.dev_menu.add_command(label="Reset All", command=self.app.dev_ops_handler.reset)
+        self.dev_menu.add_command(label="Set TP Size", command=self.app.dev_ops_handler.set_tp_size)
         # move all teaching points to the top of the canvas
-        self.dev_menu.add_command(label="Move All TPs to Top", command=self.app.move_all_tps_to_top)
-        self.dev_menu.add_command(label="Export TPs", command=self.export_tps)
+        self.dev_menu.add_command(label="Export TPs", command=self.app.dev_ops_handler.export_tps)
         # calculate the depth for all teaching points
-        self.dev_menu.add_command(label="Calc Depth for All TPs", command=self.app.calc_depth_for_all_tps)
-        self.dev_menu.add_separator()
+        self.dev_menu.add_command(label="Calc Depth for All TPs", command=self.app.dev_ops_handler.calc_depth_for_all_tps)
         # lock all the images
-        self.dev_menu.add_command(label="Lock All Images", command=self.app.lock_all)
-        self.dev_menu.add_separator()
-        self.dev_menu.add_command(label="MSI Machine Coord", command=self.app.calc_msi_machine_coordinate)
-        self.dev_menu.add_separator()
-        # a simple way to view the BLOB data in the database
-        self.dev_menu.add_command(label="View BLOB Data", command=self.app.view_blob_data)
+        self.dev_menu.add_command(label="Lock All Images", command=self.app.dev_ops_handler.lock_all)
 
 
         # Add 'Help' menu
@@ -131,38 +120,6 @@ class MenuBar:
         self.app.unbind("<Control-p>")
         return "break"
 
-    def add_tp_labels(self):
-        """Add labels for all the teaching points"""
-        label_idx = 0
-        for k, v in self.app.items.items():
-            try:
-                for i, tp in v.teaching_points.items():
-                    # append label to the teaching_points dictionary
-                    v.teaching_points[i] = list(v.teaching_points[i])
-                    try:
-                        v.teaching_points[i][3] = label_idx
-                    except IndexError:
-                        v.teaching_points[i].append(label_idx)
-                    v.teaching_points[i] = tuple(v.teaching_points[i])
-
-                    try:
-                        # pass the label to teaching point px coords
-                        v.teaching_points_px_coords[i] = list(v.teaching_points_px_coords[i])
-                        try:
-                            v.teaching_points_px_coords[i][3] = label_idx
-                        except IndexError:
-                            v.teaching_points_px_coords[i].append(label_idx)
-                        v.teaching_points_px_coords[i] = tuple(v.teaching_points_px_coords[i])
-                    except AttributeError:
-                        pass
-                    except IndexError:
-                        messagebox.showerror("Error", "Something went wrong when adding labels to teaching points")
-                    label_idx += 1
-
-            except AttributeError:
-                pass
-        # show the labels
-        self.app.show_tp_labels()
 
     def add_images(self, event=None):
         """Load the images from the file paths"""
@@ -245,38 +202,7 @@ class MenuBar:
             self.app.tree_frame.pack(side=tk.RIGHT, fill=tk.Y)
             self.app.tree_visible = True
 
-    def calc_cm_per_px(self):
-        # get the two vertical scale lines
-        if len(self.app.scale_line) < 2:
-            messagebox.showerror("Error", "You need to draw two vertical lines to calculate the scale")
-            raise ValueError("You need to draw two vertical lines to calculate the scale")
-        elif len(self.app.scale_line) > 2:
-            messagebox.showerror("Error", f"You have drawn more than two vertical lines:{self.app.scale_line} ")
-            raise ValueError("You have drawn more than two vertical lines")
-        else:
-            # calculate the distance between the two scale lines
-            pixel_distance = abs(
-                self.app.canvas.coords(self.app.scale_line[1])[0] - self.app.canvas.coords(self.app.scale_line[0])[0])
-            # calculate the distance in real world
-            real_distance = simpledialog.askfloat("Real Distance", "Real Distance (cm):")
-            # calculate the scale
-            self.app.cm_per_pixel = real_distance / pixel_distance
-            # create a text on the canvas to display the scale
-            text = tk.Text(self.app.canvas, height=1, width=20)
-            text.insert(tk.END, f"1cm = {int(1 / self.app.cm_per_pixel)} pixel")
-            text.config(state="disabled")
-            self.app.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
-
-    def export_tps(self):
-        """Export the teaching points to a json file"""
-        file_path = filedialog.asksaveasfilename(title="Export Teaching Points", filetypes=[("JSON files", "*.json")])
-        if file_path:
-            self.app.export_tps(file_path)
-            messagebox.showinfo("Export Teaching Points", f"Teaching points have been exported to {file_path}")
-        else:
-            messagebox.showinfo("Export Teaching Points", "No file path is given")
-
-    def pair_tps(self, auto=False,xrf=False):
+    def pair_tps_ui(self, msi=False,xrf=False):
         """pair the teaching points from xray images and msi images"""
         # create a pop-up text window to input the pair of teaching points
         popup = tk.Toplevel()
@@ -287,14 +213,14 @@ class MenuBar:
         text.grid(row=0, column=0, sticky="nsew")
         popup.grid_columnconfigure(0, weight=1)
         popup.grid_rowconfigure(0, weight=1)
-        auto_label_button = tk.Button(popup, text="I forgot to label, label them all now",
-                                      command=lambda: self.add_tp_labels())
+        auto_label_button = tk.Button(popup, text="Label all TPs",
+                                      command=lambda: self.app.add_tp_labels())
         auto_label_button.grid(row=1, column=0, sticky="nsew")
 
         # create a button to submit the pair of teaching points
         submit_button = tk.Button(popup, text="Submit",
-                                  command=lambda: self.app.pair_tps(text.get("1.0", "end-1c"),
-                                                                    auto=auto,
+                                  command=lambda: self.app.calculation_handler.pair_tps(text.get("1.0", "end-1c"),
+                                                                    msi=msi,
                                                                     xrf=xrf))
         submit_button.grid(row=2, column=0, sticky="nsew")
         # create a button to fill in the pair of teaching points

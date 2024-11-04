@@ -5,36 +5,6 @@ import sqlite3
 import numpy as np
 
 
-def sort_points_clockwise(points):
-    """
-    Sort three points in a clockwise order.
-    """
-    # get the centroid of the points
-    centroid = np.mean(points, axis=0)
-    # get the angle of the points with respect to the centroid
-    angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
-    # sort the points based on the angles
-    points = points[np.argsort(angles)]
-    return points
-
-
-def sort_points_clockwise_by_keys(points, key_points):
-    """
-    Sort three points in a clockwise order, but by the key_points
-    """
-    # get the centroid of the points
-    centroid = np.mean(key_points, axis=0)
-    # get the angle of the points with respect to the centroid
-    angles = np.arctan2(key_points[:, 1] - centroid[1], key_points[:, 0] - centroid[0])
-    # sort the points based on the angles
-    logging.debug(f"angles: {angles}")
-    logging.debug(f"points: {points}")
-    logging.debug(f"argsort: {np.argsort(angles)}")
-    points = points[np.argsort(angles)]
-    logging.debug(f"sorted points: {points}")
-    return points
-
-
 def store_blob_info(conn, var_name, dtype, shape):
     """store the blob info to the sqlite database"""
     c = conn.cursor()
