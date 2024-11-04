@@ -115,7 +115,14 @@ class LoadedImage:
         return self
 
     def rm(self, app):
-        pass
+        f = messagebox.askyesno("Remove Image", "Are you sure you want to remove this image?")
+        if f:
+            # remove the image from the canvas
+            app.canvas.delete(self.tag)
+            # remove from the items dictionary
+            del app.items[self.tag]
+        else:
+            return
 
 
 def draw_teaching_points(x, y, app, size=3, img_tag=None):
@@ -362,33 +369,6 @@ class MsiImage(TeachableImage):
         except Exception as e:
             pass
         return self
-
-    def rm(self, app):
-        f = messagebox.askyesno("Remove MSI Image", "Are you sure you want to remove the MSI image?")
-        if f:
-            # remove the image from the canvas
-            app.canvas.delete(self.tag)
-            # remove from the items dictionary
-            del app.items[self.tag]
-        else:
-            return
-
-
-class XrayImage(TeachableImage):
-    """A subclass of LoadedImage that holds the xray image"""
-
-    def __init__(self):
-        super().__init__()
-
-    def rm(self, app):
-        f = messagebox.askyesno("Remove Xray Image", "Are you sure you want to remove the xray image?")
-        if f:
-            # remove the image from the canvas
-            app.canvas.delete(self.tag)
-            # remove from the items dictionary
-            del app.items[self.tag]
-        else:
-            return
 
 
 

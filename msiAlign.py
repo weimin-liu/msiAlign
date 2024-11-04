@@ -13,7 +13,7 @@ import pandas as pd
 
 from msiAlign.func import CorSolver
 from msiAlign.menubar import MenuBar
-from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, XrayImage, TeachableImage
+from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, TeachableImage
 from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 
 
@@ -291,8 +291,8 @@ class MainApplication(tk.Tk):
     def add_teaching_point(self, event):
         """Add a teaching point to the canvas"""
         clicked_image = self.find_clicked_image(event)
-        if not isinstance(clicked_image, XrayImage) and not isinstance(clicked_image, MsiImage):
-            messagebox.showerror("Wrong image", "Click an xray image or a MSI image to add a teaching point")
+        if not isinstance(clicked_image, TeachableImage) and not isinstance(clicked_image, MsiImage):
+            messagebox.showerror("Wrong image", "Click a Teachable image to add a teaching point")
             return
         if clicked_image is not None:
             clicked_image.add_teaching_point(event, self)
@@ -397,8 +397,8 @@ class MainApplication(tk.Tk):
                 if "MsiImage" in item["type"]:
                     loaded_image = MsiImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
-                elif "XrayImage" in item["type"]:
-                    loaded_image = XrayImage.from_json(item, self)
+                elif "TeachableImage" in item["type"]:
+                    loaded_image = TeachableImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
                 elif item["type"] == "VerticalLine":
                     vertical_line = VerticalLine.from_json(item, self)
@@ -665,7 +665,7 @@ class CalculationHandler:
         paired_tps = str1
         # get all teaching points from xray:
         for k, v in self.app.items.items():
-            if isinstance(v, XrayImage):
+            if isinstance(v, TeachableImage):
                 xray_tps = v.label_indexed_teaching_points
                 break
         # get all their labels

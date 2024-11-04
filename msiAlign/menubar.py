@@ -3,7 +3,7 @@ from tkinter import filedialog, ttk, messagebox
 import os
 from msiAlign.downcore_profile import calc_depth_profile, calc_xrf_depth_profile
 from msiAlign.metadata_crawler import crawl_metadata
-from msiAlign.objects import XrayImage, MsiImage
+from msiAlign.objects import MsiImage, TeachableImage
 
 
 def how_to_use():
@@ -135,10 +135,10 @@ class MenuBar:
                     pass
             # let the user choose if input image is a reference image or a MSI image
             image_type = messagebox.askyesnocancel(
-                "Image Type", "Is this a reference image (e.g., xray, linescan...) or not (e.g., MSI, xrf...)?"
-            )  # if the user cancels, the image is an msi image
+                "Image Type", "Is this a MSI image?"
+            )  # if the user cancels, the image is a msi image
             if image_type:
-                loaded_image = XrayImage.from_path(file_path)
+                loaded_image = TeachableImage.from_path(file_path)
             elif image_type is False:
                 loaded_image = MsiImage.from_path(file_path)
             else:
