@@ -30,6 +30,7 @@ class MainApplication(tk.Tk):
         self.create_canvas()
         self.xrf_folder = None
         self.database_path = None
+        self.pair_tp_str = None
 
         self.scale_line = []
         self.sediment_start = None
@@ -272,7 +273,6 @@ class MainApplication(tk.Tk):
         except AttributeError:
             return ""
 
-
     def bind_events_to_vertical_lines(self, vertical_line):
         """Bind events to the vertical lines"""
         if sys.platform == "darwin":
@@ -344,19 +344,16 @@ class MainApplication(tk.Tk):
         """Save the current state of the canvas"""
         # get the file path to save the state
         file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
-        data_to_save = {"cm_per_pixel": self.cm_per_pixel, "items": [], 'database_path': self.database_path,}
-
-        try:
-            data_to_save["pair_tp_str"] = self.pair_tp_str
-        except AttributeError:
-            pass
-
+        data_to_save = {"cm_per_pixel": self.cm_per_pixel,
+                        "items": [],
+                        'database_path': self.database_path,
+                        'pair_tp_str': self.pair_tp_str,
+                        'sediment_start': self.sediment_start}
         try:
             data_to_save["scale_line0"] = self.scale_line[0]
             data_to_save["scale_line1"] = self.scale_line[1]
         except IndexError:
             pass
-        data_to_save["sediment_start"] = self.sediment_start
 
         # save the treeview in json format
         for k, v in self.items.items():
@@ -375,7 +372,7 @@ class MainApplication(tk.Tk):
         with open(file_path, "r") as f:
             data = json.load(f)
             # reset the canvas
-            self.reset(no_warning=True)
+            self.dev_ops_handler.reset()
             try:
                 self.cm_per_pixel = data["cm_per_pixel"]
                 if self.cm_per_pixel is not None:
@@ -826,7 +823,6 @@ class XRFHandler:
         self.mask_xrf_data()
         # transform the xrf data to the real world
         self.transform_xrf_data()
-
 
 def main():
     app = MainApplication()

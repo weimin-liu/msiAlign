@@ -155,7 +155,6 @@ class TeachableImage(LoadedImage):
         super().__init__()
         self.teaching_points = None  # a list of teaching points
         self.tp_size = 3  # the size of the teaching point on the canvas
-        self.flipped = False
         self.show_sediment_start_line_not_set_warning = True
 
     @property
@@ -195,12 +194,6 @@ class TeachableImage(LoadedImage):
                 except IndexError:
                     pass
 
-    def flip(self):
-        self.img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(self.thumbnail_size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
-        self.flipped = not self.flipped
 
     def update_teaching_points_on_resize(self, app, origin, scale_factor):
         # calculate the new teaching points coordinates after image resize
@@ -262,13 +255,9 @@ class TeachableImage(LoadedImage):
         scale_x = original_width / self.thumbnail.width
         scale_y = original_height / self.thumbnail.height
 
-        if not self.flipped:
-            # calculate the coordinates of the teaching point in the original image
-            img_x = (canvas_x - self.x) * scale_x
-            img_y = (canvas_y - self.y) * scale_y
-        else:
-            img_x = (canvas_x - self.x) * scale_x
-            img_y = (self.y + self.thumbnail.height - canvas_y) * scale_y
+        img_x = (canvas_x - self.x) * scale_x
+        img_y = (canvas_y - self.y) * scale_y
+
 
         if self.teaching_points is None:
             self.teaching_points = {}
@@ -282,7 +271,6 @@ class TeachableImage(LoadedImage):
 
     def to_json(self):
         json_data = super().to_json()
-        json_data["flipped"] = self.flipped
         json_data["teaching_points"] = self.teaching_points
         # json data key cannot be a tuple, convert the key to a string
         try:
@@ -300,14 +288,7 @@ class TeachableImage(LoadedImage):
             self.teaching_points = json_data['teaching_points']
         except Exception as e:
             self.teaching_points = None
-        try:
-            self.flipped = json_data['flipped']
-            if self.flipped:
-                self.flipped = False
-                app.canvas.itemconfig(self.tag, image=self.tk_img)
-        except Exception as e:
-            pass
-        # draw the teaching points on the canvas if they exist
+
         try:
             if self.teaching_points is not None:
                 for tp, _ in self.teaching_points.items():
