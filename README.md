@@ -1,3 +1,5 @@
+This project will be rewritten into a flask app for easier maintenance.
+
 # Installation
 
 - The main branch always has the latest version. Download, install `requirements.txt`, and run `msiAlign.py`.
