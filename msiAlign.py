@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import re
 import sqlite3
@@ -21,11 +20,6 @@ from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTea
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
-        # create a logger, and save the log to a file
-        logging.basicConfig(filename="msiAlign.log", level=logging.DEBUG,
-                            format="%(asctime)s:%(levelname)s:%(message)s",
-                            filemode='a')
-
         self.geometry("1200x800")
         self.canvas = None
         self.right_click_on_tp = None
@@ -78,7 +72,6 @@ class MainApplication(tk.Tk):
     def on_mousewheel(self, event):
         try:
             # For windows and MacOS
-            logging.debug(f"event.delta: {event.delta}")
             # if it's macos
             if sys.platform == "darwin":
                 self.canvas.yview_scroll(event.delta, "units")
@@ -91,7 +84,6 @@ class MainApplication(tk.Tk):
     def horizontal_mousewheel(self, event):
         try:
             # For windows and MacOS
-            logging.debug(f"event.delta: {event.delta}")
             self.canvas.xview_scroll(event.delta, "units")
         except AttributeError:
             raise AttributeError("The mousewheel event is not supported on this platform")
@@ -159,10 +151,7 @@ class MainApplication(tk.Tk):
         new_height = new_width / aspect_ratio
         # resize the image by creating a new image with the new dimensions
         self.items[item].resize((new_width, new_height))
-        # update the canvas item with the new image
-        logging.debug(f"item: {item}, image: {self.items[item].tk_img}")
-        logging.debug(f"self.items[item]: {self.items[item]}")
-        logging.debug('Image resized')
+
         self.canvas.itemconfig(item, image=self.items[item].tk_img)
         # TODO: an error will be raised here if there are teaching points on the image, no need
         # to panic. This is because the teaching points have the same tag as the image, so they
@@ -196,7 +185,6 @@ class MainApplication(tk.Tk):
         clicked_images = []
         for k, v in self.items.items():
             if isinstance(v, LoadedImage):
-                logging.debug(f"v.tag: {v.tag}")
                 x1, y1, x2, y2 = self.canvas.bbox(v.tag)
                 if x1 <= self.canvas.canvasx(event.x) <= x2 and y1 <= self.canvas.canvasy(event.y) <= y2:
                     clicked_images.append(v)
@@ -210,7 +198,6 @@ class MainApplication(tk.Tk):
             # sort the clicked images based on the current order
             clicked_images = sorted(clicked_images,
                                     key=lambda x: current_order.index(self.canvas.find_withtag(x.tag)[0]))
-            logging.debug(f'the front image is {clicked_images[-1]}')
             return clicked_images[-1]
         else:
             return None
@@ -331,7 +318,6 @@ class MainApplication(tk.Tk):
             try:
                 self.items[im_name].px_rect = eval(px_rect)
                 self.items[im_name].msi_rect = eval(msi_rect)
-                logging.debug(f"px_rect: {self.items[im_name].px_rect}, msi_rect: {self.items[im_name].msi_rect}")
             except KeyError:
                 pass
         conn.close()
@@ -342,7 +328,6 @@ class MainApplication(tk.Tk):
         """use the selected image as the reference to resize other images"""
         ref_width = self.items[item].thumbnail.width
         for k, v in self.items.items():
-            logging.debug(f"{k} has the class of {v.__class__}")
             if isinstance(v, MsiImage):
                 scale_factor = ref_width / v.thumbnail.width
                 self.items[k].enlarge(scale_factor)
@@ -401,7 +386,6 @@ class MainApplication(tk.Tk):
                     text.config(state="disabled")
                     self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
             except KeyError:
-                logging.debug("No cm_per_pixel is found")
                 pass
             try:
                 self.database_path = data["database_path"]
@@ -430,13 +414,11 @@ class MainApplication(tk.Tk):
                 self.canvas.itemconfig(self.scale_line[0], fill="blue")
                 self.canvas.itemconfig(self.scale_line[1], fill="blue")
             except KeyError:
-                logging.debug("No scale line is found")
                 pass
             try:
                 self.sediment_start = data["sediment_start"]
                 self.canvas.itemconfig(self.sediment_start, fill="green")
             except KeyError:
-                logging.debug("No sediment start is found")
                 pass
 
     def find_wildcard(self, wildcard):
@@ -444,7 +426,6 @@ class MainApplication(tk.Tk):
         items = self.canvas.find_all()
         matched_items = []
         for item in items:
-            logging.debug(f"item: {item}, tags: {self.canvas.gettags(item)[0]}")
             if wildcard in self.canvas.gettags(item)[0]:
                 matched_items.append(self.canvas.gettags(item))
         return matched_items
@@ -502,20 +483,16 @@ class DevOpsHandler:
         Reset the teaching points
         """
         # remove all the teaching points from the canvas
-        logging.debug("Resetting teaching points")
         for k, v in self.app.items.items():
             if isinstance(v, TeachableImage):
                 if v.teaching_points is not None:
                     v.teaching_points = {}
-                    logging.debug(f"Reset teaching points attributes for {k} successfully")
                 if hasattr(v, "teaching_points_updated"):
                     v.teaching_points_updated = False
-                    logging.debug(f"Reset teaching_points_updated attributes for {k} successfully")
         # hard remove all the teaching points oval from the canvas with tag including 'tp_'
         try:
             # list all tags
             tps = self.app.find_wildcard('tp_')
-            logging.debug(f"tps: {tps}")
             for tp in tps:
                 try:
                     self.app.canvas.delete(tp[0])
@@ -528,9 +505,7 @@ class DevOpsHandler:
         # clear the tree view
         try:
             self.app.tree.delete(*self.app.tree.get_children())
-            logging.debug("Reset the tree view successfully")
         except AttributeError:
-            logging.debug("No tree view found")
             pass
 
     def calc_depth_for_all_tps(self):
@@ -602,11 +577,11 @@ class CalculationHandler:
     def calc_msi_machine_coordinate(self):
         for k, v in self.app.items.items():
             if isinstance(v, MsiImage):
-                logging.debug(f"Calculating the MSI machine coordinate for {k}")
                 try:
                     v.update_tp_coords(self.app.database_path)
                 except AttributeError:
-                    logging.debug(f"database path is not set")
+                    messagebox.showerror("Error", "No database path is found")
+                    return
 
     def machine_to_real_world(self):
         """apply the transformation to the msi teaching points"""
@@ -628,20 +603,16 @@ class CalculationHandler:
                 c.execute('DROP TABLE transformation')
                 conn.commit()
             except sqlite3.OperationalError:
-                logging.debug("The transformation table does not exist yet, creating one")
+                pass
             # create a transformation table with metadata(spec_id) as the reference key
             c.execute(
                 'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
             conn.commit()
-            logging.debug("The transformation table is created")
             # read all the spotname from metadata table and convert them to array
             c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
             data = c.fetchall()
             assert len(data) > 0, "No data is found in the metadata table"
             for row in data:
-                # log once in a while
-                if row[0] % 100 == 0:
-                    logging.debug(f"spec_id: {row[0]}")
                 spec_id, im_name, spot_name = row
                 spec_id = int(spec_id)
                 spot_name = eval(spot_name)
@@ -657,24 +628,18 @@ class CalculationHandler:
                 c.execute('INSERT INTO transformation (spec_id, msi_img_file_name, spot_array) VALUES (?, ?, ?)',
                           (spec_id, im_name, spot_name.tobytes()))
                 conn.commit()
-                # store_blob_info(conn, 'spot_array', spot_name.dtype, spot_name.shape)
-            logging.debug("The spotnames are written to the transformation table")
             c.execute('SELECT spec_id, msi_img_file_name, spot_array FROM transformation')
             data = c.fetchall()
-            logging.debug(f"data: {data}")
             for row in data:
                 spec_id, im_name, spot_array = row
                 spec_id = int(spec_id)
                 spot_array = np.frombuffer(spot_array, dtype=int).reshape(-1, 2)
-                logging.debug(f"spec_id: {spec_id}, im_name: {im_name}, spot_array: {spot_array}")
                 # apply the transformation to the spot_array
                 if im_name in self.app.solvers_xray.keys() or im_name.replace(' ', '_') in self.app.solvers_xray.keys():
                     xray_array = self.app.solvers_xray[im_name.replace(' ','_')].transform(spot_array)
                     xray_array_dtype = xray_array.dtype
-                    logging.debug(f"xray_array_dtype: {xray_array_dtype}")
                     # store_blob_info(conn, 'xray_array', xray_array_dtype, xray_array.shape)
                     xray_array_shape = xray_array.shape
-                    logging.debug(f"xray_array_shape: {xray_array_shape}")
                     linescan_array = self.app.solvers_depth[im_name.replace(' ', '_')].transform(spot_array)
                     # line_scan_dtype = linescan_array.dtype
                     # linescan_array_shape = linescan_array.shape
@@ -683,12 +648,7 @@ class CalculationHandler:
                               (xray_array.tobytes(), spec_id))
                     c.execute('UPDATE transformation SET linescan_array = ? WHERE spec_id = ?',
                               (linescan_array.tobytes(), spec_id))
-                else:
-                    logging.debug(f"{im_name.replace(' ', '_')} is not in the solvers_xray.keys()")
-            # store the blob info to the blob_info table
-
             conn.commit()
-
             conn.close()
         else:
             messagebox.showerror("No file path is given")
@@ -705,9 +665,7 @@ class CalculationHandler:
         str1 = [s.split(' ') for s in str1]
 
         str1 = [[int(x) for x in s] for s in str1]
-        logging.debug(f"str1: {str1}")
         paired_tps = str1
-        logging.debug(f"paired_tps: {paired_tps}")
         # get all teaching points from xray:
         for k, v in self.app.items.items():
             if isinstance(v, XrayImage):
@@ -715,7 +673,6 @@ class CalculationHandler:
                 break
         # get all their labels
         xray_tp_labels = list(xray_tps.keys())
-        logging.debug(f"xray_tp_labels: {xray_tp_labels}")
         # convert self.app.paired_tps to a dictionary using xray_tp_labels as the values
         paired_tps_dict = {}
         for i, v in enumerate(paired_tps):
@@ -724,13 +681,11 @@ class CalculationHandler:
             elif v[1] in xray_tp_labels:
                 paired_tps_dict[v[0]] = v[1]
             else:
-                logging.debug(f"v: {v} is not in xray_tp_labels")
-        logging.debug(f"paired_tps_dict: {paired_tps_dict}")
+                continue
 
         self.app.solvers_xray = {}
         self.app.solvers_depth = {}
 
-        logging.debug(f"xray_tps: {xray_tps}")
         for k, v in self.app.items.items():
             if isinstance(v, MsiImage):
                 try:
@@ -740,7 +695,6 @@ class CalculationHandler:
                     for msi_tp_label in msi_tps.keys():
                         if msi_tp_label in paired_tps_dict.keys():
                             partial_xray_tps[msi_tp_label] = xray_tps[paired_tps_dict[msi_tp_label]]
-                    logging.debug(f"partial_xray_tps: {partial_xray_tps}")
                     self.app.solvers_xray[k] = CorSolver()
                     self.app.solvers_xray[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
                                              np.array(list(partial_xray_tps.values()))[:, 0:2])
@@ -808,14 +762,11 @@ class XRFHandler:
                 xrf_files = [f for f in os.listdir(os.path.join(
                     self.xrf_folder, a_folder
                 )) if f.endswith('.txt') and 'Video' not in f]
-                logging.debug(f"xrf_files: {xrf_files}")
                 element = {}
                 # read all the elements from the xrf images
                 # find the changing parts and the common parts of all names
                 common_part = os.path.commonprefix(xrf_files)
-                logging.debug(f"common_part: {common_part}")
                 changing_parts = [f.replace(common_part, '').replace('.txt', '') for f in xrf_files]
-                logging.debug(f"changing_parts: {changing_parts}")
                 for i, f in enumerate(xrf_files):
                     element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
                 # convert the elements to a dataframe, with x and y and the element names as the columns

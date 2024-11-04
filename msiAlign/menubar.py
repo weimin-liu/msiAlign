@@ -1,4 +1,3 @@
-import logging
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import os
@@ -145,7 +144,6 @@ class MenuBar:
             else:
                 messagebox.showerror("Error", "You need to choose an image type")
 
-            logging.debug(f"Loaded image: {loaded_image}")
             loaded_image.create_im_on_canvas(self.app)
             self.app.items[loaded_image.tag] = loaded_image
 
@@ -171,7 +169,6 @@ class MenuBar:
     def update_tp_view(self):
         # if the teaching points view does not exist, create one
         if not hasattr(self.app, 'tree'):
-            logging.debug("Creating a treeview to display teaching points")
             # create a treeview to display teaching points
             self.app.tree_frame = tk.Frame(self.app)
             self.app.tree_frame.pack(side=tk.RIGHT, fill=tk.Y)

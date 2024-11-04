@@ -1,4 +1,3 @@
-import logging
 import os.path
 import re
 import sqlite3
@@ -69,7 +68,7 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
                             messagebox.showerror("Error", "The spectrum file name does not exist in the database or is not unique")
 
         else:
-            logging.info(f"The spectrum file name is {spec_file_name} for {DA_txt_path}")
+            pass
 
     # extract the target compounds from exported_txt_path
     if target_cmpds is None:
@@ -115,7 +114,6 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
     df = pd.merge(coords, df, on='spot_name')
     # only keep the successful spectrum, where both GDGT_0 and GDGT_5 are present
     # TODO: record this value somewhere other than log
-    logging.debug(f"Successful rate: {df.dropna().shape[0] / df.shape[0]:.2f}")
     return df
 
 
@@ -169,7 +167,6 @@ def to_1d(df, chunks, how:str):
                 # perform the calculation according to how string
                 df_1d.append(eval(how))
             except Exception as e:
-                logging.error(f"Error: {e}")
                 return
     return df_1d
 

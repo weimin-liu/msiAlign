@@ -1,5 +1,4 @@
 """ crawler for metadata """
-import logging
 import os
 import shutil
 # create a namedtuple for the metadata
@@ -58,7 +57,6 @@ class MetadataCrawler:
         if not os.path.exists(db_path):
             open(db_path, 'w').close()
         else:
-            logging.debug(f"Database {db_path} already exists, removing it")
             os.remove(db_path)
             open(db_path, 'w').close()
         # write the metadata to the sqlite database
@@ -92,13 +90,11 @@ def crawl_metadata():
     if metadata_dir:
         metadata_crawler = MetadataCrawler(metadata_dir)
         metadata_crawler.crawl()
-        logging.debug(f"Metadata has been crawled")
         # ask the user to save the metadata to a sqlite database
         db_path = filedialog.asksaveasfilename(title="Save Metadata to SQLite Database",
                                                filetypes=[("SQLite Database", "*.db")])
         if db_path:
             metadata_crawler.to_sqlite(db_path)
-            logging.debug(f"Metadata has been crawled and saved to {db_path}")
         # ask the user if they want to collect the msi images
         collect_msi_img = simpledialog.askstring("Collect MSI Images",
                                                  "Do you want to collect the MSI images? (y/n)")
@@ -111,7 +107,8 @@ def crawl_metadata():
                 messagebox.showerror("No target directory is given")
 
     else:
-        logging.debug("No metadata directory is given")
+        messagebox.showerror("No raw data directory is selected")
+        return
 
 
 if __name__ == "__main__":

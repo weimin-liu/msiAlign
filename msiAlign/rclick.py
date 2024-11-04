@@ -1,6 +1,4 @@
 """implement right click functionality for the application"""
-import logging
-import os
 import tkinter as tk
 from math import sqrt
 from tkinter import simpledialog, messagebox
@@ -52,7 +50,6 @@ class RightClickOnLine(RightClickMenu):
         try:
             self.app.canvas.itemconfig(item, fill="blue")
         except Exception as e:
-            logging.debug(e)
             pass
 
     def set_sediment_start(self, item):
@@ -63,7 +60,6 @@ class RightClickOnLine(RightClickMenu):
         try:
             self.app.canvas.itemconfig(item, fill="green")
         except Exception as e:
-            logging.debug(e)
             pass
 
     def delete_line(self, item):
@@ -125,7 +121,6 @@ class RightClickOnImage(RightClickMenu):
         # update the item to be right-clicked
         self.clicked_item = item
         self.clicked_event = event
-        logging.debug(f"Image {item} is right-clicked")
 
         if self.app.items[item].locked:
             self.menu.entryconfig("Unlock", state="normal")
@@ -139,15 +134,12 @@ class RightClickOnImage(RightClickMenu):
     def enlarge_image(self, item, scale_factor):
         """enlarge/shrink the image"""
         if scale_factor == 'auto':
-            logging.debug(f"Try to auto resize the image {self.app.items[item]}")
             # make sure this is a msi image
             assert isinstance(self.app.items[item], MsiImage), messagebox.showerror("Error", "You can only auto resize the msi image")
             # assert isinstance(self.app.items[item], MsiImage), "You can only auto resize the msi image"
             assert self.app.cm_per_pixel is not None,  messagebox.showerror("Error", "Please set the scale first")
-            logging.debug(f"Auto resizing the image {item}")
             # the real length of the slide that currently used is approximately 7.87cm
             real_size = 8
-            logging.debug(f"real size: {real_size}")
             # calculate the new size of the image
             new_width = real_size / self.app.cm_per_pixel
             scale_factor = new_width / self.app.items[item].thumbnail.width
@@ -186,7 +178,6 @@ class RightClickOnTeachingPoint(RightClickMenu):
                               command=lambda: self.delete_teaching_point(self.clicked_event, self.clicked_item))
 
     def show_menu(self, event, item=None):
-        logging.debug(f"Teaching point {item} is right-clicked, the coordinates are {self.app.canvas.coords(item)}")
         # update the item to be right-clicked
         self.clicked_item = item
         self.clicked_event = event
@@ -200,7 +191,6 @@ class RightClickOnTeachingPoint(RightClickMenu):
         clicked_image = self.app.find_clicked_image(event)
         closest_tp = None
         for k, v in clicked_image.teaching_points.items():
-            logging.debug(f"comparing {f'tp_{int(k[0])}_{int(k[1])}'}, {item}")
             # find the closest teaching point to the clicked point
             distance = sqrt((k[0] - self.app.canvas.coords(item)[0]) ** 2 +
                             (k[1] - self.app.canvas.coords(item)[1]) ** 2)
@@ -225,7 +215,6 @@ class RightClickOnTeachingPoint(RightClickMenu):
         except IndexError:
             clicked_image.teaching_points[closest_tp[0]].append(label)
         clicked_image.teaching_points[closest_tp[0]] = tuple(clicked_image.teaching_points[closest_tp[0]])
-        logging.debug(f'{clicked_image.teaching_points[closest_tp[0]]}')
 
     def delete_teaching_point(self, event, item):
         """delete the teaching point"""
@@ -234,7 +223,6 @@ class RightClickOnTeachingPoint(RightClickMenu):
         # delete the teaching point from the teaching_points dictionary
         closest_tp = None
         for k, v in clicked_image.teaching_points.items():
-            logging.debug(f"comparing {f'tp_{int(k[0])}_{int(k[1])}'}, {item}")
             # find the closest teaching point to the clicked point
             distance = sqrt((k[0] - self.app.canvas.coords(item)[0]) ** 2 +
                             (k[1] - self.app.canvas.coords(item)[1]) ** 2)
@@ -245,15 +233,11 @@ class RightClickOnTeachingPoint(RightClickMenu):
         # delete the teaching point from the teaching_points dictionary
         try:
             self.app.items[clicked_image.tag].teaching_points.pop(closest_tp[0])
-            logging.debug(f"Teaching point {closest_tp[0]} is deleted from {clicked_image.tag}")
         except TypeError:
-            logging.debug(f"Teaching point {item} is deleted")
             pass
         try:
             self.app.items[clicked_image.tag].teaching_points_px_coords.pop(closest_tp[0])
         except Exception as e:
-            logging.debug(e)
             pass
 
         self.app.canvas.delete(item)
-        logging.debug(f"Teaching point {item} is deleted")

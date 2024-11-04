@@ -1,4 +1,3 @@
-import logging
 import re
 import sqlite3
 
@@ -12,7 +11,6 @@ def store_blob_info(conn, var_name, dtype, shape):
         # check if 'blob_info' table exists
         c.execute('SELECT * FROM blob_info')
     except sqlite3.OperationalError:
-        logging.debug("The blob_info table does not exist yet, creating one")
         # create a blob_info table
         c.execute('CREATE TABLE blob_info (var_name TEXT, dtype TEXT, shape TEXT)')
         conn.commit()

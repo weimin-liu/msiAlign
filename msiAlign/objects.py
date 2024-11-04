@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 import tkinter as tk
@@ -91,7 +90,6 @@ class LoadedImage:
         self.locked = False
 
     def to_json(self):
-        logging.debug(f"Saving {self.__class__.__name__} to json")
         json_data = {
             "type": self.__class__.__name__,
             "img_path": self.img_path,
@@ -205,8 +203,6 @@ class TeachableImage(LoadedImage):
         self.flipped = not self.flipped
 
     def update_teaching_points_on_resize(self, app, origin, scale_factor):
-        logging.debug(f"origin: {origin}, scale_factor: {scale_factor}")
-        logging.debug(f"teaching points: {self.teaching_points}")
         # calculate the new teaching points coordinates after image resize
         new_keys = []
         old_keys = []
@@ -225,7 +221,6 @@ class TeachableImage(LoadedImage):
                 try:
                     self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
                 except Exception as e:
-                    logging.error(e)
                     pass
 
     def update_teaching_points(self, app, offset_x, offset_y):
@@ -247,12 +242,10 @@ class TeachableImage(LoadedImage):
                 try:
                     self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
                 except Exception as e:
-                    logging.error(e)
                     pass
 
     def add_teaching_point(self, event, app):
         canvas_x, canvas_y = app.canvas.canvasx(event.x), app.canvas.canvasy(event.y)
-        logging.debug(f"teaching point added canvas_x: {canvas_x}, canvas_y: {canvas_y}")
         # draw the teaching point on the canvas
         draw_teaching_points(canvas_x, canvas_y, app, size=self.tp_size, img_tag=self.tag)
 
@@ -285,7 +278,6 @@ class TeachableImage(LoadedImage):
         try:
             self.teaching_points_px_coords[teaching_point_key] = (img_x, img_y, depth)
         except Exception as e:
-            logging.error(e)
             pass
 
     def to_json(self):
@@ -296,31 +288,24 @@ class TeachableImage(LoadedImage):
         try:
             json_data["teaching_points"] = {str(k): v for k, v in json_data["teaching_points"].items()}
         except Exception as e:
-            logging.error(e)
             pass
-        logging.debug(f"json data to write: {json_data}")
         return json_data
 
     @classmethod
     def from_json(cls, json_data, app):
         self = super().from_json(json_data, app)
-        logging.debug(f"class: {self.__class__.__name__}")
         # convert the key back to a tuple
         try:
             json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
             self.teaching_points = json_data['teaching_points']
-            logging.debug(f"teaching points: {self.teaching_points}")
         except Exception as e:
-            logging.error(e)
             self.teaching_points = None
         try:
             self.flipped = json_data['flipped']
             if self.flipped:
                 self.flipped = False
-                self.flip()
                 app.canvas.itemconfig(self.tag, image=self.tk_img)
         except Exception as e:
-            logging.error(e)
             pass
         # draw the teaching points on the canvas if they exist
         try:
@@ -328,7 +313,6 @@ class TeachableImage(LoadedImage):
                 for tp, _ in self.teaching_points.items():
                     draw_teaching_points(tp[0], tp[1], app, size=self.tp_size, img_tag=self.tag)
         except Exception as e:
-            logging.error(e)
             pass
         return self
 
@@ -361,13 +345,10 @@ class MsiImage(TeachableImage):
                     self.px_rect = eval(px_rect)
                     self.msi_rect = eval(msi_rect)
                     break
-                logging.debug(f"{im_name} not found in the metadata")
             conn.close()
         assert self.msi_rect is not None and self.px_rect is not None, (
             messagebox.showerror("Error", "Something went wrong, please check the metadata file"))
         assert self.teaching_points is not None, messagebox.showerror("Error", "No teaching points found")
-        logging.debug(f"msi_rect: {self.msi_rect}")
-        logging.debug(f"px_rect: {self.px_rect}")
         x_min, y_min, x_max, y_max = self.msi_rect
         x_min_px, y_min_px, x_max_px, y_max_px = self.px_rect
         for k, v in self.teaching_points_px_coords.items():
@@ -398,7 +379,6 @@ class MsiImage(TeachableImage):
                                                       json_data["teaching_points_px_coords"].items()}
             self.teaching_points_px_coords = json_data['teaching_points_px_coords']
         except Exception as e:
-            logging.error(e)
             pass
         return self
 
