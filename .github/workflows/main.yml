@@ -50,7 +50,7 @@ jobs:
         include:
           - os: macos-latest
             TARGET: macos
-            CMD_BUILD: >
+            CMD_BUILD: |
               pip install setuptools --upgrade &&
               pip install wheel &&
               pip uninstall pyinstaller -y &&
@@ -69,18 +69,18 @@ jobs:
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: >
-              pip install setuptools --upgrade &&
-              pip install wheel &&
-              pip uninstall pyinstaller -y &&
-              git clone https://github.com/pyinstaller/pyinstaller &&
-              cd pyinstaller/bootloader &&
-              python ./waf all distclean all --target-arch=64bit &&
-              cd ../ &&
-              pip install . &&
-              cd ../ &&
-              pyinstaller --noconsole -w -n msiAlign msiAlign.py &&
-              cd dist/ &&
-              zip -r9 msialign_win.zip msiAlign/
+              pip install setuptools --upgrade && 
+              pip install wheel && 
+              pip uninstall pyinstaller -y && 
+              git clone https://github.com/pyinstaller/pyinstaller && 
+              cd pyinstaller\bootloader && 
+              python ./waf all distclean all --target-arch=64bit && 
+              cd .. && 
+              pip install . && 
+              cd .. && 
+              pyinstaller --noconsole -w -n msiAlign msiAlign.py && 
+              cd dist && 
+              powershell -Command "Compress-Archive -Path 'msiAlign\\*' -DestinationPath 'msialign_win.zip'"
             OUT_FILE_NAME: msialign_win.zip
             ASSET_MIME: application/zip
 
