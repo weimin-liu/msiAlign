@@ -50,39 +50,37 @@ jobs:
         include:
           - os: macos-latest
             TARGET: macos
-            SHELL: bash
             CMD_BUILD: |
-              pip install setuptools --upgrade
-              pip install wheel
-              pip uninstall pyinstaller -y
-              git clone https://github.com/pyinstaller/pyinstaller
-              cd pyinstaller/bootloader
-              python ./waf all distclean all
-              cd ../
-              pip install .
-              cd ../
-              pyinstaller --noconsole -F -w -n msiAlign msiAlign.py
-              cd dist/
+              pip install setuptools --upgrade &&
+              pip install wheel &&
+              pip uninstall pyinstaller -y &&
+              git clone https://github.com/pyinstaller/pyinstaller &&
+              cd pyinstaller/bootloader &&
+              python ./waf all distclean all &&
+              cd ../ &&
+              pip install . &&
+              cd ../ &&
+              pyinstaller --noconsole -F -w -n msiAlign msiAlign.py &&
+              cd dist/ &&
               zip -r9 msiAlign msiAlign.app/
             OUT_FILE_NAME: msiAlign.zip
             ASSET_MIME: application/zip
 
           - os: windows-latest
             TARGET: windows
-            SHELL: pwsh
-            CMD_BUILD: |
-              pip install setuptools --upgrade
-              pip install wheel
-              pip uninstall pyinstaller -y
-              git clone https://github.com/pyinstaller/pyinstaller
-              cd pyinstaller/bootloader
-              python ./waf all distclean all --target-arch=64bit
-              cd ../
-              pip install .
-              cd ../
-              pyinstaller --noconsole -w -n msiAlign msiAlign.py
-              cd dist/
-              Compress-Archive -Path 'msiAlign\*' -DestinationPath 'msialign_win.zip'
+            CMD_BUILD: >
+              pip install setuptools --upgrade && 
+              pip install wheel && 
+              pip uninstall pyinstaller -y && 
+              git clone https://github.com/pyinstaller/pyinstaller && 
+              cd pyinstaller\bootloader && 
+              python ./waf all distclean all --target-arch=64bit && 
+              cd .. && 
+              pip install . && 
+              cd .. && 
+              pyinstaller --noconsole -w -n msiAlign msiAlign.py && 
+              cd dist && 
+              powershell -Command "Compress-Archive -Path 'msiAlign\\*' -DestinationPath 'msialign_win.zip'"
             OUT_FILE_NAME: msialign_win.zip
             ASSET_MIME: application/zip
 
@@ -100,7 +98,6 @@ jobs:
           pip install -r requirements.txt        
 
       - name: Build with pyinstaller for ${{ matrix.TARGET }}
-        shell: ${{ matrix.SHELL }}
         run: ${{ matrix.CMD_BUILD }}
 
       - name: Load Release URL File from release job
