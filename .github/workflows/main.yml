@@ -17,7 +17,7 @@ jobs:
           TIMESTAMP="v$(date -u +'%Y%m%d%H%M%S')"
           echo "tag=$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "release_name=$TIMESTAMP" >> $GITHUB_OUTPUT
-      
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -34,7 +34,7 @@ jobs:
 
       - name: Verify Release URL File Exists
         run: ls -l release_url.txt  # Debugging step to confirm file existence
-      
+
       - name: Save Release URL File for publish
         uses: actions/upload-artifact@v3
         with:
@@ -69,17 +69,17 @@ jobs:
           - os: windows-latest
             TARGET: windows
             CMD_BUILD: >
-              pip install setuptools --upgrade && 
-              pip install wheel && 
-              pip uninstall pyinstaller -y && 
-              git clone https://github.com/pyinstaller/pyinstaller && 
-              cd pyinstaller\bootloader && 
-              python ./waf all distclean all --target-arch=64bit && 
-              cd .. && 
-              pip install . && 
-              cd .. && 
-              pyinstaller --noconsole -w -n msiAlign msiAlign.py && 
-              cd dist && 
+              pip install setuptools --upgrade &&
+              pip install wheel &&
+              pip uninstall pyinstaller -y &&
+              git clone https://github.com/pyinstaller/pyinstaller &&
+              cd pyinstaller\bootloader &&
+              python ./waf all distclean all --target-arch=64bit &&
+              cd .. &&
+              pip install . &&
+              cd .. &&
+              pyinstaller --noconsole -w -n msiAlign msiAlign.py &&
+              cd dist &&
               powershell -Command "Compress-Archive -Path 'msiAlign\\*' -DestinationPath 'msialign_win.zip'"
             OUT_FILE_NAME: msialign_win.zip
             ASSET_MIME: application/zip
@@ -95,10 +95,33 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt        
+          pip install -r requirements.txt
 
       - name: Build with pyinstaller for ${{ matrix.TARGET }}
         run: ${{ matrix.CMD_BUILD }}
+
+      - name: Install Inno Setup
+        if: matrix.os == 'windows-latest'
+        run: choco install innosetup
+
+      - name: Create Inno Setup Script
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo [Setup] > setup.iss
+          echo AppName=msiAlign >> setup.iss
+          echo AppVersion=1.0 >> setup.iss
+          echo DefaultDirName={pf}\msiAlign >> setup.iss
+          echo DefaultGroupName=msiAlign >> setup.iss
+          echo OutputDir=dist >> setup.iss
+          echo OutputBaseFilename=msiAlignInstaller >> setup.iss
+          echo [Files] >> setup.iss
+          echo Source: "dist\msiAlign\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs >> setup.iss
+          echo [Icons] >> setup.iss
+          echo Name: "{group}\msiAlign"; Filename: "{app}\msiAlign.exe" >> setup.iss
+
+      - name: Run Inno Setup
+        if: matrix.os == 'windows-latest'
+        run: iscc setup.iss
 
       - name: Load Release URL File from release job
         uses: actions/download-artifact@v3
@@ -122,6 +145,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AC_TOKEN }}
         with:
           upload_url: ${{ steps.get_release_info.outputs.upload_url }}
-          asset_path: ./dist/${{ matrix.OUT_FILE_NAME }}
-          asset_name: ${{ matrix.OUT_FILE_NAME }}
-          asset_content_type: ${{ matrix.ASSET_MIME }}
+          asset_path: ./dist/msiAlignInstaller.exe
+          asset_name: msiAlignInstaller.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
