@@ -8,6 +8,40 @@ from PIL import Image, ImageTk
 Image.MAX_IMAGE_PIXELS = None
 
 
+def get_right_click_event():
+    return "<Button-2>" if sys.platform == "darwin" else "<Button-3>"
+
+
+def key_to_str(key):
+    return f"{key[0]},{key[1]}"
+
+
+def str_to_key(s):
+    x_str, y_str = s.split(",")
+    return float(x_str), float(y_str)
+
+
+def draw_teaching_points(x, y, app, size=3, img_tag=None):
+    tp_tag = f"tp_{int(x)}_{int(y)}"
+
+    app.canvas.create_oval(
+        x - size,
+        y - size,
+        x + size,
+        y + size,
+        fill="red",
+        tags=tp_tag
+    )
+    if img_tag is not None:
+        app.canvas.addtag_withtag(img_tag, tp_tag)
+
+    app.canvas.tag_bind(tp_tag,
+                        get_right_click_event(),
+                        lambda e: app.right_click_on_tp.show_menu(e, tp_tag))
+
+    return tp_tag
+
+
 class LoadedImage:
     """A superclass for the loaded images"""
 
@@ -15,11 +49,11 @@ class LoadedImage:
         self.img_path = None
         self.img = None
         self.thumbnail = None
-        self.thumbnail_size = (500, 500)  # the size of the thumbnail on the canvas
+        self.thumbnail_size = (500, 500)
         self.tk_img = None
         self._tag = None
         self.locked = False
-        self.origin = (None, None)  # the origin of the image on the canvas
+        self.origin = (None, None)
 
     @property
     def x(self):
@@ -39,49 +73,48 @@ class LoadedImage:
     def __repr__(self):
         return self.img_path
 
+    def load_image(self):
+        self.img = Image.open(self.img_path)
+        self.update_thumbnail()
+
+    def update_thumbnail(self):
+        self.thumbnail = self.img.copy()
+        self.thumbnail.thumbnail(self.thumbnail_size)
+        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+
     @classmethod
     def from_path(cls, img_path):
         self = cls()
         self.img_path = img_path
         self._tag = os.path.basename(img_path).replace(" ", "_")
-        self.img = Image.open(img_path)
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(self.thumbnail_size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+        self.load_image()
         return self
 
     def create_im_on_canvas(self, app):
-        # set the origin of the image on the canvas
         if self.origin == (None, None):
-            # get the center of the canvas at current pan and zoom level, if the origin is not set yet
-            x, y = app.canvas.canvasx(app.canvas.winfo_width() / 2), app.canvas.canvasy(app.canvas.winfo_height() / 2)
+            x = app.canvas.canvasx(app.canvas.winfo_width() / 2)
+            y = app.canvas.canvasy(app.canvas.winfo_height() / 2)
             self.origin = (x - self.thumbnail.width / 2, y - self.thumbnail.height / 2)
 
-        # create the image on the canvas
         app.canvas.create_image(
             self.origin[0],
             self.origin[1],
             anchor="nw",
             image=self.tk_img,
-            tags=f"{self.tag}"
+            tags=self.tag
         )
-        # bind events to the image
         app.bind_events_to_loaded_images(self)
 
     def resize(self, size):
         self.thumbnail_size = size
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+        self.update_thumbnail()
 
     def enlarge(self, scale_factor):
         self.thumbnail_size = (
             self.thumbnail.width * scale_factor,
             self.thumbnail.height * scale_factor
         )
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(self.thumbnail_size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
+        self.update_thumbnail()
 
     def lock(self):
         self.locked = True
@@ -90,69 +123,30 @@ class LoadedImage:
         self.locked = False
 
     def to_json(self):
-        json_data = {
+        return {
             "type": self.__class__.__name__,
             "img_path": self.img_path,
             "thumbnail_size": self.thumbnail_size,
             "origin": self.origin,
             "locked": self.locked,
         }
-        return json_data
 
     @classmethod
     def from_json(cls, json_data, app):
         self = cls()
         self.img_path = json_data['img_path']
-        self.thumbnail_size = json_data['thumbnail_size']
-        self.origin = json_data['origin']
+        self.thumbnail_size = tuple(json_data['thumbnail_size'])
+        self.origin = tuple(json_data['origin'])
         self.locked = json_data['locked']
-        self.img = Image.open(self.img_path)
-        self.thumbnail = self.img.copy()
-        self.thumbnail.thumbnail(self.thumbnail_size)
-        self.tk_img = ImageTk.PhotoImage(self.thumbnail)
         self._tag = os.path.basename(self.img_path).replace(" ", "_")
+        self.load_image()
         self.create_im_on_canvas(app)
         return self
 
     def rm(self, app):
-        f = messagebox.askyesno("Remove Image", "Are you sure you want to remove this image?")
-        if f:
-            # remove the image from the canvas
+        if messagebox.askyesno("Remove Image", "Are you sure you want to remove this image?"):
             app.canvas.delete(self.tag)
-            # remove from the items dictionary
             del app.items[self.tag]
-        else:
-            return
-
-
-def draw_teaching_points(x, y, app, size=3, img_tag=None):
-    # mark the teaching point on the canvas
-    app.canvas.create_oval(
-        x - size,
-        y - size,
-        x + size,
-        y + size,
-        fill="red",
-        tags=f"tp_{int(x)}_{int(y)}"
-    )
-    # bundle the teaching point with the image
-    if img_tag is not None:
-        app.canvas.addtag_withtag(img_tag, f"tp_{int(x)}_{int(y)}")
-
-    # bind events to the teaching point
-    if sys.platform == "darwin":
-        app.canvas.tag_bind(f"tp_{int(x)}_{int(y)}",
-                            "<Button-2>",
-                            lambda e: app.right_click_on_tp.show_menu(e, f"tp_{int(x)}_{int(y)}"))
-    elif sys.platform == "win32":
-        app.canvas.tag_bind(f"tp_{int(x)}_{int(y)}",
-                            "<Button-3>",
-                            lambda e: app.right_click_on_tp.show_menu(e, f"tp_{int(x)}_{int(y)}"))
-    else:
-        raise Exception("Unsupported platform")
-
-    # return the tag of the teaching point
-    return f"tp_{int(x)}_{int(y)}"
 
 
 class TeachableImage(LoadedImage):
@@ -160,97 +154,65 @@ class TeachableImage(LoadedImage):
 
     def __init__(self):
         super().__init__()
-        self.teaching_points_px_coords = None
-        self.teaching_points = None  # a list of teaching points
-        self.tp_size = 3  # the size of the teaching point on the canvas
+        self.teaching_points_px_coords = {}
+        self.teaching_points = {}
+        self.tp_size = 3
         self.show_sediment_start_line_not_set_warning = True
 
     @property
     def label_indexed_teaching_points(self):
-        if self.teaching_points is not None:
-            try:
-                return {v[3]: v[:3] for v in self.teaching_points.values()}
-            except IndexError:
-                return None
-        else:
-            return None
+        return {v[3]: v[:3] for v in self.teaching_points.values() if len(v) >= 4}
 
     @property
     def px_teaching_points_labels(self):
-        if self.teaching_points is not None:
-            try:
-                return {k: v[3] for k, v in self.teaching_points.items()}
-            except IndexError:
-                return None
-        else:
-            return None
+        return {k: v[3] for k, v in self.teaching_points.items() if len(v) >= 4}
 
     def show_tp_labels(self, app):
-        if self.teaching_points is not None:
-            for k, v in self.teaching_points.items():
-                try:
-                    text = tk.Text(app.canvas, height=1, width=3)
-                    text.insert(tk.END, v[3])
-                    text.config(state=tk.DISABLED)
-                    app.canvas.create_window(
-                        k[0],
-                        k[1],
-                        window=text,
-                        anchor="nw",
-                        tags=f"tp_labels"
-                    )
-                except IndexError:
-                    pass
+        for k, v in self.teaching_points.items():
+            if len(v) >= 4:
+                label = v[3]
+                text = tk.Text(app.canvas, height=1, width=3)
+                text.insert(tk.END, label)
+                text.config(state=tk.DISABLED)
+                app.canvas.create_window(
+                    k[0],
+                    k[1],
+                    window=text,
+                    anchor="nw",
+                    tags="tp_labels"
+                )
 
+    def _update_teaching_points(self, app, transform_func):
+        old_keys = list(self.teaching_points.keys())
+        for old_key in old_keys:
+            x, y = old_key
+            app.canvas.delete(f"tp_{int(x)}_{int(y)}")
+            x_new, y_new = transform_func(x, y)
+            new_key = (x_new, y_new)
+            draw_teaching_points(x_new, y_new, app, size=self.tp_size, img_tag=self.tag)
+            self.teaching_points[new_key] = self.teaching_points.pop(old_key)
+            if self.teaching_points_px_coords:
+                self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
 
     def update_teaching_points_on_resize(self, app, origin, scale_factor):
-        # calculate the new teaching points coordinates after image resize
-        new_keys = []
-        old_keys = []
-        if self.teaching_points is not None:
-            for k, v in self.teaching_points.items():
-                old_keys.append(k)
-                x, y = k
-                app.canvas.delete(f"tp_{int(x)}_{int(y)}")
-                x = origin[0] + (x - origin[0]) * scale_factor
-                y = origin[1] + (y - origin[1]) * scale_factor
-                new_keys.append((x, y))
-                draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
-            for old_key, new_key in zip(old_keys, new_keys):
-                self.teaching_points[new_key] = self.teaching_points.pop(old_key)
-                # if it is an MSI image, update the teaching point coordinates in the MSI image
-                try:
-                    self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
-                except Exception as e:
-                    pass
+        self._update_teaching_points(
+            app,
+            lambda x, y: (
+                origin[0] + (x - origin[0]) * scale_factor,
+                origin[1] + (y - origin[1]) * scale_factor
+            )
+        )
 
     def update_teaching_points(self, app, offset_x, offset_y):
-        old_keys = []
-        new_keys = []
-        if self.teaching_points is not None:
-            for k, v in self.teaching_points.items():
-                x, y = k
-                old_keys.append(k)
-                app.canvas.delete(f"tp_{int(x)}_{int(y)}")
-                x += offset_x
-                y += offset_y
-                new_keys.append((x, y))
-                # remove the teaching point from the canvas
-                draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
-            for old_key, new_key in zip(old_keys, new_keys):
-                self.teaching_points[new_key] = self.teaching_points.pop(old_key)
-                # if it is an MSI image, update the teaching point coordinates in the MSI image
-                try:
-                    self.teaching_points_px_coords[new_key] = self.teaching_points_px_coords.pop(old_key)
-                except Exception as e:
-                    pass
+        self._update_teaching_points(
+            app,
+            lambda x, y: (x + offset_x, y + offset_y)
+        )
 
     def add_teaching_point(self, event, app):
         canvas_x, canvas_y = app.canvas.canvasx(event.x), app.canvas.canvasy(event.y)
-        # draw the teaching point on the canvas
         draw_teaching_points(canvas_x, canvas_y, app, size=self.tp_size, img_tag=self.tag)
 
-        # try to find the approximate depth of the teaching point
         if app.sediment_start is not None and app.cm_per_pixel is not None:
             depth = abs(app.canvas.coords(app.sediment_start)[0] - canvas_x) * app.cm_per_pixel
         else:
@@ -266,66 +228,44 @@ class TeachableImage(LoadedImage):
         img_x = (canvas_x - self.x) * scale_x
         img_y = (canvas_y - self.y) * scale_y
 
+        label = simpledialog.askstring("Input", "Enter label for the teaching point:", parent=app.master)
+        teaching_point_data = (img_x, img_y, depth, label) if label else (img_x, img_y, depth)
 
-        if self.teaching_points is None:
-            self.teaching_points = {}
         teaching_point_key = (canvas_x, canvas_y)
-        self.teaching_points[teaching_point_key] = (img_x, img_y, depth)
-        # if it is an MSI image, update the teaching point coordinates in the MSI image
-        try:
-            self.teaching_points_px_coords[teaching_point_key] = (img_x, img_y, depth)
-        except Exception as e:
-            pass
+        self.teaching_points[teaching_point_key] = teaching_point_data
+        self.teaching_points_px_coords[teaching_point_key] = teaching_point_data
 
     def to_json(self):
         json_data = super().to_json()
-        json_data["teaching_points"] = self.teaching_points
-        # json data key cannot be a tuple, convert the key to a string
-        try:
-            json_data["teaching_points"] = {str(k): v for k, v in json_data["teaching_points"].items()}
-        except Exception as e:
-            pass
+        json_data["teaching_points"] = {key_to_str(k): v for k, v in self.teaching_points.items()}
         return json_data
 
     @classmethod
     def from_json(cls, json_data, app):
         self = super().from_json(json_data, app)
-        # convert the key back to a tuple
-        try:
-            json_data["teaching_points"] = {eval(k): v for k, v in json_data["teaching_points"].items()}
-            self.teaching_points = json_data['teaching_points']
-        except Exception as e:
-            self.teaching_points = None
-
-        try:
-            if self.teaching_points is not None:
-                for tp, _ in self.teaching_points.items():
-                    draw_teaching_points(tp[0], tp[1], app, size=self.tp_size, img_tag=self.tag)
-        except Exception as e:
-            pass
+        self.teaching_points = {str_to_key(k): v for k, v in json_data.get("teaching_points", {}).items()}
+        for tp_key in self.teaching_points.keys():
+            x, y = tp_key
+            draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
         return self
 
 
 class MsiImage(TeachableImage):
-    """A subclass of LoadedImage that holds the MSI image"""
+    """A subclass of TeachableImage that holds the MSI image"""
 
     def __init__(self):
         super().__init__()
-        self.msi_rect = None  # the coordinates of the MSI image rectangle in R00X?Y? format
-        self.px_rect = None  # the coordinates of the MSI image rectangle in pixel
-        self.teaching_points_px_coords = {}  # the coordinates of the teaching points in the MSI image
+        self.msi_rect = None
+        self.px_rect = None
+        self.teaching_points_px_coords = {}
 
     def update_tp_coords(self, sqlite_db_path):
-        """ replace the coordinates of the teaching points with the MSI coordinates"""
-        # copy the values to px_coords when this command is first called
-        if self.teaching_points_px_coords is None:
+        if not self.teaching_points_px_coords:
             self.teaching_points_px_coords = self.teaching_points.copy()
         if self.msi_rect is None or self.px_rect is None:
-            # if the MSI and pixel rectangle are not set, try reading the coordinates from the metadata
             import sqlite3
             conn = sqlite3.connect(sqlite_db_path)
             c = conn.cursor()
-            # get the image name, px_rect, and msi_rect
             c.execute('SELECT msi_img_file_name, px_rect, msi_rect FROM metadata')
             data = c.fetchall()
             for row in data:
@@ -335,42 +275,33 @@ class MsiImage(TeachableImage):
                     self.msi_rect = eval(msi_rect)
                     break
             conn.close()
-        assert self.msi_rect is not None and self.px_rect is not None, (
-            messagebox.showerror("Error", "Something went wrong, please check the metadata file"))
-        assert self.teaching_points is not None, messagebox.showerror("Error", "No teaching points found")
+        if self.msi_rect is None or self.px_rect is None:
+            messagebox.showerror("Error", "Something went wrong, please check the metadata file")
+            return
+        if not self.teaching_points:
+            messagebox.showerror("Error", "No teaching points found")
+            return
         x_min, y_min, x_max, y_max = self.msi_rect
         x_min_px, y_min_px, x_max_px, y_max_px = self.px_rect
         for k, v in self.teaching_points_px_coords.items():
             msi_x = (v[0] - x_min_px) / (x_max_px - x_min_px) * (x_max - x_min) + x_min
             msi_y = (v[1] - y_min_px) / (y_max_px - y_min_px) * (y_max - y_min) + y_min
-            try:
-                self.teaching_points[k] = (msi_x, msi_y, v[2], v[3])
-            except IndexError:
-                self.teaching_points[k] = (msi_x, msi_y, v[2])
+            self.teaching_points[k] = (msi_x, msi_y, *v[2:])
 
     def to_json(self):
         json_data = super().to_json()
         json_data["msi_rect"] = self.msi_rect
         json_data["px_rect"] = self.px_rect
-        if self.teaching_points_px_coords is not None:
-            json_data["teaching_points_px_coords"] = self.teaching_points_px_coords
-            json_data["teaching_points_px_coords"] = {str(k): v for k, v in
-                                                      json_data["teaching_points_px_coords"].items()}
+        json_data["teaching_points_px_coords"] = {key_to_str(k): v for k, v in self.teaching_points_px_coords.items()}
         return json_data
 
     @classmethod
     def from_json(cls, json_data, app):
         self = super().from_json(json_data, app)
-        self.msi_rect = json_data['msi_rect']
-        self.px_rect = json_data['px_rect']
-        try:
-            json_data["teaching_points_px_coords"] = {eval(k): v for k, v in
-                                                      json_data["teaching_points_px_coords"].items()}
-            self.teaching_points_px_coords = json_data['teaching_points_px_coords']
-        except Exception as e:
-            pass
+        self.msi_rect = tuple(json_data['msi_rect'])
+        self.px_rect = tuple(json_data['px_rect'])
+        self.teaching_points_px_coords = {str_to_key(k): v for k, v in json_data.get("teaching_points_px_coords", {}).items()}
         return self
-
 
 
 class VerticalLine:
@@ -379,9 +310,10 @@ class VerticalLine:
         "sediment_start_line": "green"
     }
 
-    def __init__(self, position):
+    def __init__(self, position, line_type=None):
         self.position = position
         self.depth = None
+        self.line_type = line_type
         self._tag = f"vl_{position[0]}"
         self.type = "VerticalLine"
 
@@ -425,10 +357,7 @@ class VerticalLine:
 
     @property
     def color(self):
-        if self.tag in self.color_map:
-            return self.color_map[self.tag]
-        else:
-            return "red"
+        return self.color_map.get(self.line_type, "red")
 
     def __str__(self):
         return self.tag
@@ -437,14 +366,12 @@ class VerticalLine:
         return self.tag
 
     def rm(self, app):
-        # remove the teaching point from the canvas
         app.canvas.delete(self.tag)
-        # remove from the items dictionary
         del app.items[self.tag]
 
     @classmethod
     def from_json(cls, json_data, app):
-        self = cls(json_data['position'])
+        self = cls(json_data['position'], line_type=json_data.get('line_type'))
         self._tag = json_data['tag']
         self.depth = json_data['depth']
         self.create_on_canvas(app)
@@ -456,6 +383,7 @@ class VerticalLine:
             "tag": self.tag,
             "position": self.position,
             "depth": self.depth,
+            "line_type": self.line_type
         }
 
 

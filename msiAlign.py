@@ -39,7 +39,6 @@ class MainApplication(tk.Tk):
         self.save_attrs = [
             'cm_per_pixel', 'database_path', 'pair_tp_str', 'sediment_start', 'scale_line'
         ]
-        # add menubar
         self.calculation_handler = CalculationHandler(self)
         self.dev_ops_handler = DevOpsHandler(self)
         self.xrf_handler = XRFHandler(self)
