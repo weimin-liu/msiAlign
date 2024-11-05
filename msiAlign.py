@@ -5,7 +5,7 @@ import sqlite3
 import sys
 import tkinter as tk
 from tkinter import filedialog
-from tkinter import ttk, simpledialog, messagebox
+from tkinter import simpledialog, messagebox
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -36,6 +36,9 @@ class MainApplication(tk.Tk):
         self.sediment_start = None
 
         self.cm_per_pixel = None
+        self.save_attrs = [
+            'cm_per_pixel', 'database_path', 'pair_tp_str', 'sediment_start', 'scale_line'
+        ]
         # add menubar
         self.calculation_handler = CalculationHandler(self)
         self.dev_ops_handler = DevOpsHandler(self)
@@ -43,7 +46,6 @@ class MainApplication(tk.Tk):
         self.menu = MenuBar(self)
 
         self.create_right_click_op()
-
 
     def create_right_click_op(self):
         self.right_click_on_line = RightClickOnLine(self)
@@ -342,58 +344,47 @@ class MainApplication(tk.Tk):
 
     def save(self, event=None, layout_only=False):
         """Save the current state of the canvas"""
-        # get the file path to save the state
         file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
-        data_to_save = {"cm_per_pixel": self.cm_per_pixel,
-                        "items": [],
-                        'database_path': self.database_path,
-                        'pair_tp_str': self.pair_tp_str,
-                        'sediment_start': self.sediment_start}
-        try:
-            data_to_save["scale_line0"] = self.scale_line[0]
-            data_to_save["scale_line1"] = self.scale_line[1]
-        except IndexError:
-            pass
+        if not file_path:
+            return  # User cancelled the save dialog
+        data_to_save = {}
 
-        # save the treeview in json format
+        # Save the attributes automatically
+        for attr in self.save_attrs:
+            data_to_save[attr] = getattr(self, attr, None)
+
+        # Save items
+        data_to_save["items"] = []
         for k, v in self.items.items():
-            if not layout_only:
+            if not layout_only or not isinstance(v, MsiImage):
                 data_to_save["items"].append(v.to_json())
-            else:
-                # save the images excluding the msi images
-                if not isinstance(v, MsiImage):
-                    data_to_save["items"].append(v.to_json())
+
         with open(file_path, "w") as f:
             json.dump(data_to_save, f)
 
     def load(self, event=None):
         """Load the state of the canvas"""
         file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
+        if not file_path:
+            return  # User cancelled the load dialog
         with open(file_path, "r") as f:
             data = json.load(f)
-            # reset the canvas
+            # Reset the canvas
             self.dev_ops_handler.reset()
-            try:
-                self.cm_per_pixel = data["cm_per_pixel"]
-                if self.cm_per_pixel is not None:
-                    # print the cm_per_pixel on canvas
-                    # create a text on the canvas to display the scale
-                    text = tk.Text(self.canvas, height=1, width=20)
-                    text.insert(tk.END, f"1cm = {int(1 / self.cm_per_pixel)} pixel")
-                    text.config(state="disabled")
-                    self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
-            except KeyError:
-                pass
-            try:
-                self.database_path = data["database_path"]
-            except KeyError:
-                pass
-            try:
-                self.pair_tp_str = data["pair_tp_str"]
-            except KeyError:
-                pass
 
-            for item in data["items"]:
+            # Load the attributes automatically
+            for attr in self.save_attrs:
+                setattr(self, attr, data.get(attr, None))
+
+            # Recreate canvas text for cm_per_pixel
+            if self.cm_per_pixel is not None:
+                text = tk.Text(self.canvas, height=1, width=20)
+                text.insert(tk.END, f"1cm = {int(1 / self.cm_per_pixel)} pixel")
+                text.config(state="disabled")
+                self.canvas.create_window(100, 100, window=text, tags="cm_per_px_text")
+
+            # Load items
+            for item in data.get("items", []):
                 if "MsiImage" in item["type"]:
                     loaded_image = MsiImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
@@ -404,19 +395,16 @@ class MainApplication(tk.Tk):
                     vertical_line = VerticalLine.from_json(item, self)
                     self.items[vertical_line.tag] = vertical_line
                     self.bind_events_to_vertical_lines(vertical_line)
-            try:
-                self.scale_line.append(data["scale_line0"])
-                self.scale_line.append(data["scale_line1"])
-                # set the scale line to green
-                self.canvas.itemconfig(self.scale_line[0], fill="blue")
-                self.canvas.itemconfig(self.scale_line[1], fill="blue")
-            except KeyError:
-                pass
-            try:
-                self.sediment_start = data["sediment_start"]
+
+            # Reconfigure scale lines and sediment start if they exist
+            if self.scale_line:
+                # Ensure that scale_line contains items
+                if len(self.scale_line) >= 2:
+                    self.canvas.itemconfig(self.scale_line[0], fill="blue")
+                    self.canvas.itemconfig(self.scale_line[1], fill="blue")
+            if self.sediment_start:
                 self.canvas.itemconfig(self.sediment_start, fill="green")
-            except KeyError:
-                pass
+
 
     def find_wildcard(self, wildcard):
         """find the tag with the wildcard"""
@@ -823,6 +811,7 @@ class XRFHandler:
         self.mask_xrf_data()
         # transform the xrf data to the real world
         self.transform_xrf_data()
+
 
 def main():
     app = MainApplication()

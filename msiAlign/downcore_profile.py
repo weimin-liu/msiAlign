@@ -1,180 +1,282 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 from tkinter.ttk import Combobox
 
 from scripts.to1d import get_depth_profile_from_gui
 
 
-def calc_depth_profile():
-    """Calculate the depth profile"""
-    # popup a window to ask for the parameters
+def calc_depth_profile_combined():
+    """Calculate the depth profile (combined mode)"""
     window = tk.Toplevel()
-    # pack the window
     window.title("Calc Downcore Profile")
-    # ask for the parameters
-    # exported_txt_path, using file selection dialog, left is the text, right is the button for file selection
-    tk.Label(window, text="Exported txt path(s):").grid(row=0, column=0, sticky='nsew')
+    widgets = {}
+    row_index = 0
 
-    exported_txt_path = tk.Entry(window)
-    exported_txt_path.grid(row=0, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END,
-                                                       ';'.join(filedialog.askopenfilenames(title='Select exported txt',
-                                                                                            filetypes=[(
-                                                                                                       "Plain text files",
-                                                                                                       "*.txt")])) + ';')).grid(
-        row=0, column=2, sticky='nsew')
-    # sqlite_db_path
-    tk.Label(window, text="Sqlite db path:").grid(row=1, column=0, sticky='nsew')
-    sqlite_db_path = tk.Entry(window)
-    sqlite_db_path.grid(row=1, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: sqlite_db_path.insert(tk.END, filedialog.askopenfilename(
-                  title='Select sqlite db', filetypes=[("SQLite files", "*.db")]
-              ))).grid(row=1, column=2,
-                       sticky='nsew')
+    # Mode selector
+    tk.Label(window, text="Mode:").grid(row=row_index, column=0, sticky='nsew')
+    mode_selector = Combobox(window, values=['MSI', 'XRF'])
+    mode_selector.current(0)
+    mode_selector.grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
 
-    # target_cmpds, able to add multiple target compounds, using a text box, and a button to add a new target
-    # compound with name and m/z
-    tk.Label(window, text="Target cmpds:").grid(row=2, column=0, sticky='nsew')
-    target_cmpds = Combobox(window)
-    target_cmpds.grid(row=2, column=1, sticky='nsew')
-    target_cmpds['values'] = ("name1:mz1;name2:mz2",
-                              "GDGT0:1324.3046;GDGT5:1314.2264",
-                              "ALK37_2:553.5319;ALK37_3:551.5162")
-    target_cmpds.current(0)
+    # MSI mode widgets
+    widgets['exported_txt_label'] = tk.Label(window, text="Exported txt path(s):")
+    widgets['exported_txt_entry'] = tk.Entry(window)
+    widgets['exported_txt_button'] = tk.Button(window, text="Select", command=lambda: widgets['exported_txt_entry'].insert(
+        tk.END,
+        ';'.join(filedialog.askopenfilenames(title='Select exported txt', filetypes=[("Plain text files", "*.txt")])) + ';'
+    ))
 
-    # how
-    tk.Label(window, text="How:").grid(row=3, column=0, sticky='nsew')
-    how = tk.Entry(window)
-    how.insert(tk.END, "data['int_name1'].sum() / (data['int_name1'].sum() + data['int_name2'].sum())")
-    how.grid(row=3, column=1, sticky='nsew')
-    # add a button to automatically generate the how string, by parsing the name1 and name2 from the target_cmpds, clear
-    # the text box first, then insert the generated how string
-    tk.Button(window, text="Generate",
-              command=lambda: [how.delete(0, tk.END),
-                               how.insert(tk.END,
-                                          f"data['int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() / "
-                                          f"(data['int_{target_cmpds.get().split(';')[0].split(':')[0]}'].sum() +"
-                                          f"data['int_{target_cmpds.get().split(';')[1].split(':')[0]}'].sum())")]).grid(
-        row=3, column=2, sticky='nsew')
-    # tol
-    tk.Label(window, text="Tol (Da, full window):").grid(row=4, column=0, sticky='nsew')
-    tol = tk.Entry(window)
-    tol.insert(tk.END, "0.01")
-    tol.grid(row=4, column=1, sticky='nsew')
-    # min_snr
-    tk.Label(window, text="Min snr:").grid(row=5, column=0, sticky='nsew')
-    min_snr = tk.Entry(window)
-    min_snr.insert(tk.END, "1")
-    min_snr.grid(row=5, column=1, sticky='nsew')
-    # min_int
-    tk.Label(window, text="Min int:").grid(row=6, column=0, sticky='nsew')
-    min_int = tk.Entry(window)
-    min_int.insert(tk.END, "10000")
-    min_int.grid(row=6, column=1, sticky='nsew')
-    # min_n_samples
-    tk.Label(window, text="Min-n-spots/horizon:").grid(row=7, column=0, sticky='nsew')
-    min_n_samples = tk.Entry(window)
-    min_n_samples.insert(tk.END, "10")
-    min_n_samples.grid(row=7, column=1, sticky='nsew')
+    widgets['exported_txt_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['exported_txt_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['exported_txt_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
 
-    # horizon size
-    tk.Label(window, text="Horizon size (μm):").grid(row=8, column=0, sticky='nsew')
-    horizon_size = tk.Entry(window)
-    horizon_size.insert(tk.END, "500")
-    horizon_size.grid(row=8, column=1, sticky='nsew')
+    widgets['sqlite_db_label'] = tk.Label(window, text="Sqlite db path:")
+    widgets['sqlite_db_entry'] = tk.Entry(window)
+    widgets['sqlite_db_button'] = tk.Button(window, text="Select", command=lambda: widgets['sqlite_db_entry'].insert(
+        tk.END,
+        filedialog.askopenfilename(title='Select sqlite db', filetypes=[("SQLite files", "*.db")])
+    ))
 
-    # save results to a csv file
-    tk.Label(window, text="Save 2D to:").grid(row=9, column=0, sticky='nsew')
-    save_path = tk.Entry(window)
-    save_path.insert(tk.END, "2D_res.csv")
-    save_path.grid(row=9, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: [save_path.delete(0, tk.END),
-                               save_path.insert(tk.END, filedialog.asksaveasfilename(
-                                   title="Save 2d result as", filetypes=[("CSV file", '*.csv')]
-                               ))]).grid(row=9, column=2, sticky='nsew')
+    widgets['sqlite_db_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['sqlite_db_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['sqlite_db_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
 
-    # save 1d depth profile to a csv file
-    tk.Label(window, text="Save 1D to:").grid(row=10, column=0, sticky='nsew')
-    save_path_1d = tk.Entry(window)
-    save_path_1d.insert(tk.END, "1D_res.csv")
-    save_path_1d.grid(row=10, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: [save_path_1d.delete(0, tk.END),
-                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename(
-                                   title="Save 1d result as", filetypes=[("CSV file", '*.csv')]
-                               ))]).grid(row=10, column=2, sticky='nsew')
-    # Only rows with Entry widgets get expanded
+    widgets['target_cmpds_label'] = tk.Label(window, text="Target cmpds:")
+    widgets['target_cmpds_combo'] = Combobox(window, values=(
+        "name1:mz1;name2:mz2",
+        "GDGT0:1324.3046;GDGT5:1314.2264",
+        "ALK37_2:553.5319;ALK37_3:551.5162"
+    ))
+    widgets['target_cmpds_combo'].current(0)
+
+    widgets['target_cmpds_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['target_cmpds_combo'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['how_label'] = tk.Label(window, text="How:")
+    widgets['how_entry'] = tk.Entry(window)
+    widgets['how_entry'].insert(
+        tk.END,
+        "data['int_name1'].sum() / (data['int_name1'].sum() + data['int_name2'].sum())"
+    )
+    widgets['how_button'] = tk.Button(window, text="Generate", command=lambda: [
+        widgets['how_entry'].delete(0, tk.END),
+        widgets['how_entry'].insert(
+            tk.END,
+            f"data['int_{widgets['target_cmpds_combo'].get().split(';')[0].split(':')[0]}'].sum() / "
+            f"(data['int_{widgets['target_cmpds_combo'].get().split(';')[0].split(':')[0]}'].sum() +"
+            f"data['int_{widgets['target_cmpds_combo'].get().split(';')[1].split(':')[0]}'].sum())"
+        )
+    ])
+
+    widgets['how_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['how_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['how_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
+
+    widgets['tol_label'] = tk.Label(window, text="Tol (Da, full window):")
+    widgets['tol_entry'] = tk.Entry(window)
+    widgets['tol_entry'].insert(tk.END, "0.01")
+
+    widgets['tol_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['tol_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['min_snr_label'] = tk.Label(window, text="Min snr:")
+    widgets['min_snr_entry'] = tk.Entry(window)
+    widgets['min_snr_entry'].insert(tk.END, "1")
+
+    widgets['min_snr_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['min_snr_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['min_int_label'] = tk.Label(window, text="Min int:")
+    widgets['min_int_entry'] = tk.Entry(window)
+    widgets['min_int_entry'].insert(tk.END, "10000")
+
+    widgets['min_int_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['min_int_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['save_2d_label'] = tk.Label(window, text="Save 2D to:")
+    widgets['save_2d_entry'] = tk.Entry(window)
+    widgets['save_2d_entry'].insert(tk.END, "2D_res.csv")
+    widgets['save_2d_button'] = tk.Button(window, text="Select", command=lambda: [
+        widgets['save_2d_entry'].delete(0, tk.END),
+        widgets['save_2d_entry'].insert(
+            tk.END,
+            filedialog.asksaveasfilename(title="Save 2d result as", filetypes=[("CSV file", '*.csv')])
+        )
+    ])
+
+    widgets['save_2d_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['save_2d_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['save_2d_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
+
+    # XRF mode widgets
+    widgets['transformed_csv_label'] = tk.Label(window, text="Transformed csv path(s):")
+    widgets['transformed_csv_entry'] = tk.Entry(window)
+    widgets['transformed_csv_button'] = tk.Button(window, text="Select", command=lambda: widgets['transformed_csv_entry'].insert(
+        tk.END,
+        ';'.join(filedialog.askopenfilenames(title='Select transformed csv', filetypes=[("CSV files", "*.csv")])) + ';'
+    ))
+
+    widgets['transformed_csv_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['transformed_csv_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['transformed_csv_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
+
+    widgets['ratios_label'] = tk.Label(window, text="Ratios (sep by ';'):")
+    widgets['ratios_entry'] = tk.Entry(window)
+    widgets['ratios_entry'].insert(tk.END, "Ca/Ti;Fe/Ti")
+
+    widgets['ratios_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['ratios_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    # Common widgets
+    widgets['min_n_samples_label'] = tk.Label(window, text="Min-n-spots/horizon:")
+    widgets['min_n_samples_entry'] = tk.Entry(window)
+    widgets['min_n_samples_entry'].insert(tk.END, "10")
+
+    widgets['min_n_samples_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['min_n_samples_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['horizon_size_label'] = tk.Label(window, text="Horizon size (μm):")
+    widgets['horizon_size_entry'] = tk.Entry(window)
+    widgets['horizon_size_entry'].insert(tk.END, "500")
+
+    widgets['horizon_size_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['horizon_size_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['save_1d_label'] = tk.Label(window, text="Save 1D to:")
+    widgets['save_1d_entry'] = tk.Entry(window)
+    widgets['save_1d_entry'].insert(tk.END, "1D_res.csv")
+    widgets['save_1d_button'] = tk.Button(window, text="Select", command=lambda: [
+        widgets['save_1d_entry'].delete(0, tk.END),
+        widgets['save_1d_entry'].insert(
+            tk.END,
+            filedialog.asksaveasfilename(title="Save 1d result as", filetypes=[("CSV file", '*.csv')])
+        )
+    ])
+
+    widgets['save_1d_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['save_1d_entry'].grid(row=row_index, column=1, sticky='nsew')
+    widgets['save_1d_button'].grid(row=row_index, column=2, sticky='nsew')
+    row_index += 1
+
+    # Start button
+    widgets['start_button'] = tk.Button(window, text="Start")
+    widgets['start_button'].grid(row=row_index, column=0, columnspan=3, sticky='nsew')
+
+    # Column configurations
     for i in range(3):
-        window.grid_columnconfigure(i, weight=1 if i == 1 else 0)  # Only the column with Entry widgets gets expanded
+        window.grid_columnconfigure(i, weight=1 if i == 1 else 0)
 
-    # a button to start the calculation
-    tk.Button(window, text="Start",
-              command=lambda: get_depth_profile_from_gui(exported_txt_path.get(), sqlite_db_path.get(),
-                                                         target_cmpds.get(),
-                                                         how.get(), tol.get(), min_snr.get(), min_int.get(),
-                                                         min_n_samples.get(),
-                                                         horizon_size.get(), save_path.get(), save_path_1d.get())).grid(
-        row=11, column=0, columnspan=3, sticky='nsew')
+    # Function to update widget visibility based on mode
+    def update_widgets():
+        mode = mode_selector.get()
+        if mode == 'MSI':
+            # Show MSI mode widgets
+            widgets['exported_txt_label'].grid()
+            widgets['exported_txt_entry'].grid()
+            widgets['exported_txt_button'].grid()
+            widgets['sqlite_db_label'].grid()
+            widgets['sqlite_db_entry'].grid()
+            widgets['sqlite_db_button'].grid()
+            widgets['target_cmpds_label'].grid()
+            widgets['target_cmpds_combo'].grid()
+            widgets['how_label'].grid()
+            widgets['how_entry'].grid()
+            widgets['how_button'].grid()
+            widgets['tol_label'].grid()
+            widgets['tol_entry'].grid()
+            widgets['min_snr_label'].grid()
+            widgets['min_snr_entry'].grid()
+            widgets['min_int_label'].grid()
+            widgets['min_int_entry'].grid()
+            widgets['save_2d_label'].grid()
+            widgets['save_2d_entry'].grid()
+            widgets['save_2d_button'].grid()
 
+            # Hide XRF mode widgets
+            widgets['transformed_csv_label'].grid_remove()
+            widgets['transformed_csv_entry'].grid_remove()
+            widgets['transformed_csv_button'].grid_remove()
+            widgets['ratios_label'].grid_remove()
+            widgets['ratios_entry'].grid_remove()
+        elif mode == 'XRF':
+            # Hide MSI mode widgets
+            widgets['exported_txt_label'].grid_remove()
+            widgets['exported_txt_entry'].grid_remove()
+            widgets['exported_txt_button'].grid_remove()
+            widgets['sqlite_db_label'].grid_remove()
+            widgets['sqlite_db_entry'].grid_remove()
+            widgets['sqlite_db_button'].grid_remove()
+            widgets['target_cmpds_label'].grid_remove()
+            widgets['target_cmpds_combo'].grid_remove()
+            widgets['how_label'].grid_remove()
+            widgets['how_entry'].grid_remove()
+            widgets['how_button'].grid_remove()
+            widgets['tol_label'].grid_remove()
+            widgets['tol_entry'].grid_remove()
+            widgets['min_snr_label'].grid_remove()
+            widgets['min_snr_entry'].grid_remove()
+            widgets['min_int_label'].grid_remove()
+            widgets['min_int_entry'].grid_remove()
+            widgets['save_2d_label'].grid_remove()
+            widgets['save_2d_entry'].grid_remove()
+            widgets['save_2d_button'].grid_remove()
 
-def calc_xrf_depth_profile():
-    """Calculate the depth profile"""
-    # popup a window to ask for the parameters
-    window = tk.Toplevel()
-    # pack the window
-    window.title("Calc Downcore Profile (xrf)")
-    # ask for the parameters
-    # exported_txt_path, using file selection dialog, left is the text, right is the button for file selection
-    tk.Label(window, text="Transformed csv path(s):").grid(row=0, column=0, sticky='nsew')
+            # Show XRF mode widgets
+            widgets['transformed_csv_label'].grid()
+            widgets['transformed_csv_entry'].grid()
+            widgets['transformed_csv_button'].grid()
+            widgets['ratios_label'].grid()
+            widgets['ratios_entry'].grid()
 
-    exported_txt_path = tk.Entry(window)
-    exported_txt_path.grid(row=0, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: exported_txt_path.insert(tk.END,
-                                                       ';'.join(filedialog.askopenfilenames(title='Select transformed csv',
-                                                                                            filetypes=[(
-                                                                                                       "Plain text files",
-                                                                                                       "*.csv")])) + ';')).grid(
-        row=0, column=2, sticky='nsew')
-    # how
-    tk.Label(window, text="Ratios (sep by ';'):").grid(row=3, column=0, sticky='nsew')
-    how = tk.Entry(window)
-    how.insert(tk.END, "Ca/Ti;Fe/Ti")
-    how.grid(row=3, column=1, sticky='nsew')
+    # Function to start the calculation
+    def start_calculation():
+        mode = mode_selector.get()
+        if mode == 'MSI':
+            # Get values from MSI mode widgets
+            exported_txt_path = widgets['exported_txt_entry'].get()
+            sqlite_db_path = widgets['sqlite_db_entry'].get()
+            target_cmpds = widgets['target_cmpds_combo'].get()
+            how = widgets['how_entry'].get()
+            tol = widgets['tol_entry'].get()
+            min_snr = widgets['min_snr_entry'].get()
+            min_int = widgets['min_int_entry'].get()
+            save_2d_path = widgets['save_2d_entry'].get()
+        else:
+            # XRF mode
+            exported_txt_path = widgets['transformed_csv_entry'].get()
+            sqlite_db_path = None
+            target_cmpds = None
+            how = widgets['ratios_entry'].get()
+            tol = None
+            min_snr = None
+            min_int = None
+            save_2d_path = None
 
-    # min_n_samples
-    tk.Label(window, text="Min-n-spots/horizon:").grid(row=7, column=0, sticky='nsew')
-    min_n_samples = tk.Entry(window)
-    min_n_samples.insert(tk.END, "10")
-    min_n_samples.grid(row=7, column=1, sticky='nsew')
+        # Common parameters
+        min_n_samples = widgets['min_n_samples_entry'].get()
+        horizon_size = widgets['horizon_size_entry'].get()
+        save_1d_path = widgets['save_1d_entry'].get()
 
-    # horizon size
-    tk.Label(window, text="Horizon size (μm):").grid(row=8, column=0, sticky='nsew')
-    horizon_size = tk.Entry(window)
-    horizon_size.insert(tk.END, "500")
-    horizon_size.grid(row=8, column=1, sticky='nsew')
+        # Call the processing function
+        get_depth_profile_from_gui(
+            exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
+            min_n_samples, horizon_size, save_2d_path, save_1d_path
+        )
 
-    # save 1d depth profile to a csv file
-    tk.Label(window, text="Save 1D to:").grid(row=10, column=0, sticky='nsew')
-    save_path_1d = tk.Entry(window)
-    save_path_1d.insert(tk.END, "1D_res.csv")
-    save_path_1d.grid(row=10, column=1, sticky='nsew')
-    tk.Button(window, text="Select",
-              command=lambda: [save_path_1d.delete(0, tk.END),
-                               save_path_1d.insert(tk.END, filedialog.asksaveasfilename(
-                                   title="Save 1d result as", filetypes=[("CSV file", '*.csv')]
-                               ))]).grid(row=10, column=2, sticky='nsew')
-    # Only rows with Entry widgets get expanded
-    for i in range(3):
-        window.grid_columnconfigure(i, weight=1 if i == 1 else 0)  # Only the column with Entry widgets gets expanded
-
-    # a button to start the calculation
-    tk.Button(window, text="Start",
-              command=lambda: get_depth_profile_from_gui(exported_txt_path.get(), None, None,
-                                                         how.get(), None, None, None,
-                                                         min_n_samples.get(),
-                                                         horizon_size.get(), None, save_path_1d.get())).grid(
-        row=11, column=0, columnspan=3, sticky='nsew')
+    # Bindings and initializations
+    mode_selector.bind("<<ComboboxSelected>>", lambda event: update_widgets())
+    widgets['start_button'].config(command=start_calculation)
+    update_widgets()
