@@ -2,6 +2,7 @@ import os
 import sys
 import tkinter as tk
 from tkinter import simpledialog, messagebox
+import numpy as np
 
 from PIL import Image, ImageTk
 
@@ -228,8 +229,7 @@ class TeachableImage(LoadedImage):
         img_x = (canvas_x - self.x) * scale_x
         img_y = (canvas_y - self.y) * scale_y
 
-        label = simpledialog.askstring("Input", "Enter label for the teaching point:", parent=app.master)
-        teaching_point_data = (img_x, img_y, depth, label) if label else (img_x, img_y, depth)
+        teaching_point_data = (img_x, img_y, depth)
 
         teaching_point_key = (canvas_x, canvas_y)
         self.teaching_points[teaching_point_key] = teaching_point_data
@@ -298,8 +298,8 @@ class MsiImage(TeachableImage):
     @classmethod
     def from_json(cls, json_data, app):
         self = super().from_json(json_data, app)
-        self.msi_rect = tuple(json_data['msi_rect'])
-        self.px_rect = tuple(json_data['px_rect'])
+        self.msi_rect = tuple(json_data['msi_rect']) if json_data['msi_rect'] is not None else None
+        self.px_rect = tuple(json_data['px_rect']) if json_data['px_rect'] is not None else None
         self.teaching_points_px_coords = {str_to_key(k): v for k, v in json_data.get("teaching_points_px_coords", {}).items()}
         return self
 

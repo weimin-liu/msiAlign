@@ -247,7 +247,7 @@ def get_chunks(depth, horizon_size, min_n_samples=10):
     return chunks
 
 
-def to_1d(df, chunks, how: str):
+def to_1d(df, chunks, how: str) -> pd.DataFrame:
     """
     Aggregates data in df over the given chunks using the specified method.
     Returns a DataFrame of aggregated values for each chunk.
@@ -279,6 +279,10 @@ def to_1d(df, chunks, how: str):
             v = int_data.median()
             v[~valid_mask] = 0
             df_1d_list.append(v)
+        elif how == 'sumall':
+            v = int_data.sum()
+            df_1d_list.append(v)
+
         else:
             # Evaluate custom expression
             try:
@@ -286,85 +290,68 @@ def to_1d(df, chunks, how: str):
                 v = eval(how, {"__builtins__": None}, safe_dict)
                 df_1d_list.append(v)
             except Exception as e:
-                print(f"Error evaluating custom expression '{how}': {e}")
+                messagebox.showerror(title="Error", message=f"Error evaluating expression: {e}")
                 return pd.DataFrame()
 
     df_1d = pd.DataFrame(df_1d_list)
     return df_1d
 
 
-def get_depth_profile_from_gui(exported_txt_paths, sqlite_db_path, target_cmpds_str, how_str, tol, min_snr, min_int,
-                               min_n_samples, horizon_size, save_path, save_path_1d):
-    """
-    Processes exported txt files to create depth profiles, using parameters provided from GUI.
-    Saves the resulting data to specified paths.
-    """
-    # Convert parameters to appropriate types
-    tol = float(tol) if tol is not None else None
-    min_snr = float(min_snr) if min_snr is not None else None
-    min_int = float(min_int) if min_int is not None else None
-    min_n_samples = int(min_n_samples) if min_n_samples is not None else None
-    horizon_size = float(horizon_size) / 10000 if horizon_size is not None else None  # Convert μm to cm
 
-    # Parse target compounds
-    if target_cmpds_str:
-        target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds_str.strip(';').split(';')])
-        target_cmpds = {name: float(mz) for name, mz in target_cmpds.items()}
-    else:
-        # Parse target compounds from 'how_str'
-        target_cmpds = {}
-        how_list = how_str.split(';')
-        for cmpd in how_list:
-            elements = re.findall(r'\b\w+\b', cmpd)
-            for elem in elements:
-                target_cmpds[elem] = None
-
-    # Process each exported txt path
-    exported_txt_paths = [path for path in exported_txt_paths.strip(';').split(';') if path]
+def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
+                               min_n_samples,
+                               horizon_size, save_path, save_path_1d):
+    # conver all values to float
+    tol = float(tol)
+    min_snr = float(min_snr)
+    min_int = float(min_int)
+    min_n_samples = int(min_n_samples)
+    horizon_size = float(horizon_size) / 10000  # convert to cm
+    # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
+    target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
+    # make sure the values are floats
+    target_cmpds = {name: float(mz) for name, mz in target_cmpds.items()}
+    # get exported_txt_path, seperated by ';' and trim the last ';' if there is one
+    exported_txt_path = exported_txt_path.split(';')
+    if exported_txt_path[-1] == '':
+        exported_txt_path = exported_txt_path[:-1]
+    # find the first existing path
     df_1d_list = []
-
-    for idx, path in enumerate(exported_txt_paths):
+    for path in exported_txt_path:
         if os.path.exists(path):
-            if tol is None and min_snr is None and min_int is None:
-                df = pd.read_csv(path)
+            single_exported_txt_path = path
+            df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr,
+                                  min_int=min_int)
+            # save the dataframe
+            # append save_path with index if there are multiple exported_txt_path
+            if len(exported_txt_path) > 1:
+                _save_path = save_path.replace('.csv', f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
             else:
-                df = get_mz_int_depth(path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr,
-                                      min_int=min_int)
-                # Save the dataframe
-                _save_path = save_path.replace('.csv', f'_{idx}.csv') if len(exported_txt_paths) > 1 else save_path
-                df.to_csv(_save_path, index=False)
-
-            df = df.dropna()
+                _save_path = save_path
+            df.to_csv(_save_path, index=False)
+            if '/' in how:
+                # in ratio mode, only keep the spots where at least one of the two compounds is not zero
+                df = df.dropna()
+            elif 'sumall' in how:
+                # in sumall mode, remove the spots where all the compounds are zero
+                df = df.dropna(how='all', subset=[col for col in df.columns if 'int' in col])
             df = df.sort_values(by='d')
 
-            # Get chunks and depth
             chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
+            # get the mean depth of each chunk
             depth_1d = to_1d(df, chunks, "data['d'].mean()")
-
-            # Process 'how_str'
-            how_list = how_str.split(';')
-            ratio_1d_list = []
-            for r_how in how_list:
-                expr = r_how
-                for element in target_cmpds.keys():
-                    expr = expr.replace(element, f"data['{element}']")
-                ratio_1d = to_1d(df, chunks, expr)
-                ratio_1d_list.append(ratio_1d)
-
-            # Combine results
-            ratio_1d_df = pd.concat(ratio_1d_list, axis=1)
-            ratio_1d_df.columns = how_list
-            horizon_counts = [chunk[1] - chunk[0] for chunk in chunks]
-
-            df_1d = pd.DataFrame({
-                'd': depth_1d['d'],
-                'horizon_count': horizon_counts,
-                'slide': [os.path.basename(path)] * len(depth_1d)
-            })
-            df_1d = pd.concat([df_1d, ratio_1d_df], axis=1)
-
-            # Save 1D depth profile
-            _save_path_1d = save_path_1d.replace('.csv', f'_{idx}.csv') if len(exported_txt_paths) > 1 else save_path_1d
+            ratio_1d = to_1d(df, chunks, how)
+            horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
+            df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
+                                  'horizon_count': horizon_count,
+                                  'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d),
+                                  'result': ratio_1d.iloc[:, 0]})
+            # save the 1d depth profile
+            if len(exported_txt_path) > 1:
+                _save_path_1d = save_path_1d.replace('.csv',
+                                                     f'_{exported_txt_path.index(single_exported_txt_path)}.csv')
+            else:
+                _save_path_1d = save_path_1d
             df_1d.to_csv(_save_path_1d, index=False)
             df_1d_list.append(df_1d)
 
@@ -373,6 +360,62 @@ def get_depth_profile_from_gui(exported_txt_paths, sqlite_db_path, target_cmpds_
         all_df_1d = pd.concat(df_1d_list, axis=0, ignore_index=True)
         all_df_1d.to_csv(save_path_1d.replace('.csv', '_all.csv'), index=False)
 
+    # create a tkinter messagebox to show the user it's done and add an ok button to close the window
+    messagebox.showinfo(title="Done", message="The downcore profile has been successfully created")
+
+
+def get_xrf_depth_profile_from_gui(exported_csv_path, sqlite_db_path, how,
+                               min_n_samples,
+                               horizon_size, save_path, save_path_1d):
+    # conver all values to float
+    min_n_samples = int(min_n_samples)
+    horizon_size = float(horizon_size) / 10000 # convert to cm
+    # parse all the target elements from how: Al/Ca, Ca/Ti, etc.
+    how = how.split(';')
+    # get exported_csv_path, seperated by ';' and trim the last ';' if there is one
+    exported_csv_path = exported_csv_path.split(';')
+    if exported_csv_path[-1] == '':
+        exported_csv_path = exported_csv_path[:-1]
+    df_list = []
+    # find the first existing path
+    for path in exported_csv_path:
+        if os.path.exists(path):
+            single_exported_csv_path = path
+            df = pd.read_csv(single_exported_csv_path)
+            df = df.dropna()
+            df = df.sort_values(by='d')
+            chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
+            # get the mean depth of each chunk
+            depth_1d = to_1d(df, chunks, "data['d'].mean()")
+            ratio_1ds = []
+            for r_how in how:
+                e0 = r_how.split('/')[0]
+                e1 = r_how.split('/')[1]
+                ratio_1d = to_1d(df, chunks, f"data['{e0}'].sum()/data['{e1}'].sum()")
+                ratio_1ds.append(ratio_1d)
+            ratio_1d = np.array(ratio_1ds).T
+            horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
+            df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
+                                  'horizon_count': horizon_count,
+                                  'slide': [os.path.basename(single_exported_csv_path)] * len(depth_1d),
+                                  'result': ratio_1d})
+            # concatenate the ratio_1d to df_1d
+            df_1d = pd.concat([df_1d, ratio_1d], axis=1)
+
+            # save the 1d depth profile
+            if len(exported_csv_path) > 1:
+                _save_path_1d = save_path_1d.replace('.csv',
+                                                     f'_{exported_csv_path.index(single_exported_csv_path)}.csv')
+            else:
+                _save_path_1d = save_path_1d
+            df_1d.to_csv(_save_path_1d, index=False)
+            df_list.append(df_1d)
+
+    if len(df_list) > 1:
+        all_df_1d = pd.concat(df_list, axis=0, ignore_index=True)
+        all_df_1d.to_csv(save_path_1d.replace('.csv', '_all.csv'), index=False)
+
+    # create a tkinter messagebox to show the user it's done and add an ok button to close the window
     messagebox.showinfo("Done", "The downcore profile has been successfully created")
 
 

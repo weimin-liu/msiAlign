@@ -300,6 +300,15 @@ class MainApplication(tk.Tk):
 
     def add_metadata(self):
         """Add metadata to the app"""
+        # note that the metadata needed to be added to the app after all msi images are loaded
+        # ask the user if all the msi images are loaded
+        userchoice = messagebox.askokcancel(
+            "Add Metadata",
+            "All the MSI images need to be loaded before adding metadata, continue adding metadata?",
+            icon='warning'
+        )
+        if not userchoice:
+            return
         file_path = filedialog.askopenfilename(title="Select a database file", filetypes=[("SQLite files", "*.db")])
         if file_path:
             self.database_path = file_path
@@ -312,18 +321,19 @@ class MainApplication(tk.Tk):
         # get the image name, px_rect, and msi_rect
         c.execute('SELECT msi_img_file_name, px_rect, msi_rect FROM metadata')
         data = c.fetchall()
+        count = 0
         for row in data:
             im_name, px_rect, msi_rect = row
-            im_name = im_name
             # attach the metadata to the corresponding image
             try:
-                self.items[im_name].px_rect = eval(px_rect)
-                self.items[im_name].msi_rect = eval(msi_rect)
+                self.items[im_name.replace(' ','_')].px_rect = eval(px_rect)
+                self.items[im_name.replace(' ','_')].msi_rect = eval(msi_rect)
+                count += 1
             except KeyError:
                 pass
         conn.close()
         # create a popup window to show the process is done, and ok button to close the window
-        messagebox.showinfo("Done", "The metadata is added")
+        messagebox.showinfo("Success", f"{count} images have been added with metadata")
 
     def use_as_ref_to_resize(self, item):
         """use the selected image as the reference to resize other images"""
@@ -343,7 +353,9 @@ class MainApplication(tk.Tk):
 
     def save(self, event=None, layout_only=False):
         """Save the current state of the canvas"""
-        file_path = filedialog.asksaveasfilename(title="Save workspace", filetypes=[("JSON", "*.json")])
+        file_path = filedialog.asksaveasfilename(title="Save workspace",
+                                                 defaultextension=".json",
+                                                 filetypes=[("JSON", "*.json")])
         if not file_path:
             return  # User cancelled the save dialog
         data_to_save = {}
@@ -448,7 +460,9 @@ class DevOpsHandler:
 
     def export_tps(self):
         """Export the teaching points to a json file"""
-        file_path = filedialog.asksaveasfilename(title="Export Teaching Points", filetypes=[("JSON files", "*.json")])
+        file_path = filedialog.asksaveasfilename(title="Export Teaching Points",
+                                                 defaultextension=".json",
+                                                 filetypes=[("JSON files", "*.json")])
         if file_path:
             data_to_save = "img;x;y;d\n"
             for k, v in self.app.items.items():

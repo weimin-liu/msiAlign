@@ -70,8 +70,10 @@ class MetadataCrawler:
             c.execute(
                 'INSERT INTO metadata (spec_file_name, msi_img_file_path, msi_img_file_name, px_rect, msi_rect, spot_name) VALUES (?, ?, ?, ?, ?, ?)',
                 (v.spec_file_name, v.msi_img_file_path,
-                 v.msi_img_file_name, str(v.px_rect),
-                 str(v.msi_rect), str(v.spot_name)))
+                 v.msi_img_file_name,
+                 str(list(int(i) for i in v.px_rect)),
+                 str(list(int(i) for i in v.msi_rect)),
+                 str(v.spot_name)))
         conn.commit()
         conn.close()
 
@@ -92,6 +94,7 @@ def crawl_metadata():
         metadata_crawler.crawl()
         # ask the user to save the metadata to a sqlite database
         db_path = filedialog.asksaveasfilename(title="Save Metadata to SQLite Database",
+                                               defaultextension=".db",
                                                filetypes=[("SQLite Database", "*.db")])
         if db_path:
             metadata_crawler.to_sqlite(db_path)
@@ -102,12 +105,16 @@ def crawl_metadata():
             target_dir = filedialog.askdirectory(title="Select the target directory to collect MSI images")
             if target_dir:
                 metadata_crawler.collect_msi_img(target_dir)
-                messagebox.showinfo(f"MSI images have been collected to {target_dir}")
+                messagebox.showinfo(
+                    title="Success",
+                    message=f"MSI images have been collected to {target_dir}")
             else:
                 messagebox.showerror("No target directory is given")
 
     else:
-        messagebox.showerror("No raw data directory is selected")
+        messagebox.showerror(
+            title="Error",
+            message="No raw data directory is selected")
         return
 
 

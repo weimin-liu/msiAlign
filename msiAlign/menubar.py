@@ -133,16 +133,13 @@ class MenuBar:
                 except AttributeError:
                     pass
             # let the user choose if input image is a reference image or a MSI image
-            image_type = messagebox.askyesnocancel(
+            image_type = messagebox.askyesno(
                 "Image Type", "Is this a MSI image?"
             )  # if the user cancels, the image is a msi image
             if image_type:
-                loaded_image = TeachableImage.from_path(file_path)
-            elif image_type is False:
                 loaded_image = MsiImage.from_path(file_path)
             else:
-                messagebox.showerror("Error", "You need to choose an image type")
-
+                loaded_image = TeachableImage.from_path(file_path)
             loaded_image.create_im_on_canvas(self.app)
             self.app.items[loaded_image.tag] = loaded_image
 

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter.ttk import Combobox
 
-from scripts.to1d import get_depth_profile_from_gui
+from scripts.to1d import get_msi_depth_profile_from_gui, get_xrf_depth_profile_from_gui
 
 
 def calc_depth_profile_combined():
@@ -57,11 +57,12 @@ def calc_depth_profile_combined():
     row_index += 1
 
     widgets['how_label'] = tk.Label(window, text="How:")
-    widgets['how_entry'] = tk.Entry(window)
-    widgets['how_entry'].insert(
-        tk.END,
-        "data['int_name1'].sum() / (data['int_name1'].sum() + data['int_name2'].sum())"
-    )
+    widgets['how_entry'] = Combobox(window, values=(
+        "data['int_name1'].sum() / (data['int_name1'].sum() + data['int_name2'].sum())",
+        "sumall"
+    ))
+    widgets['how_entry'].current(0)
+
     widgets['how_button'] = tk.Button(window, text="Generate", command=lambda: [
         widgets['how_entry'].delete(0, tk.END),
         widgets['how_entry'].insert(
@@ -108,7 +109,9 @@ def calc_depth_profile_combined():
         widgets['save_2d_entry'].delete(0, tk.END),
         widgets['save_2d_entry'].insert(
             tk.END,
-            filedialog.asksaveasfilename(title="Save 2d result as", filetypes=[("CSV file", '*.csv')])
+            filedialog.asksaveasfilename(title="Save 2d result as",
+                                         defaultextension=".csv",
+                                         filetypes=[("CSV file", '*.csv')])
         )
     ])
 
@@ -162,7 +165,9 @@ def calc_depth_profile_combined():
         widgets['save_1d_entry'].delete(0, tk.END),
         widgets['save_1d_entry'].insert(
             tk.END,
-            filedialog.asksaveasfilename(title="Save 1d result as", filetypes=[("CSV file", '*.csv')])
+            filedialog.asksaveasfilename(title="Save 1d result as",
+                                         defaultextension=".csv",
+                                         filetypes=[("CSV file", '*.csv')])
         )
     ])
 
@@ -244,6 +249,10 @@ def calc_depth_profile_combined():
     # Function to start the calculation
     def start_calculation():
         mode = mode_selector.get()
+        # Common parameters
+        min_n_samples = widgets['min_n_samples_entry'].get()
+        horizon_size = widgets['horizon_size_entry'].get()
+        save_1d_path = widgets['save_1d_entry'].get()
         if mode == 'MSI':
             # Get values from MSI mode widgets
             exported_txt_path = widgets['exported_txt_entry'].get()
@@ -254,27 +263,21 @@ def calc_depth_profile_combined():
             min_snr = widgets['min_snr_entry'].get()
             min_int = widgets['min_int_entry'].get()
             save_2d_path = widgets['save_2d_entry'].get()
+
+            # Call the processing function
+            get_msi_depth_profile_from_gui(
+                exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
+                min_n_samples, horizon_size, save_2d_path, save_1d_path
+            )
         else:
             # XRF mode
             exported_txt_path = widgets['transformed_csv_entry'].get()
-            sqlite_db_path = None
-            target_cmpds = None
             how = widgets['ratios_entry'].get()
-            tol = None
-            min_snr = None
-            min_int = None
-            save_2d_path = None
+            get_xrf_depth_profile_from_gui(
+                exported_txt_path, how,
+                min_n_samples, horizon_size, save_1d_path
+            )
 
-        # Common parameters
-        min_n_samples = widgets['min_n_samples_entry'].get()
-        horizon_size = widgets['horizon_size_entry'].get()
-        save_1d_path = widgets['save_1d_entry'].get()
-
-        # Call the processing function
-        get_depth_profile_from_gui(
-            exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
-            min_n_samples, horizon_size, save_2d_path, save_1d_path
-        )
 
     # Bindings and initializations
     mode_selector.bind("<<ComboboxSelected>>", lambda event: update_widgets())
