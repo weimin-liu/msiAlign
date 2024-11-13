@@ -280,7 +280,7 @@ def to_1d(df, chunks, how: str) -> pd.DataFrame:
             v[~valid_mask] = 0
             df_1d_list.append(v)
         elif how == 'sumall':
-            v = int_data.sum()
+            v = int_data.sum().sum()
             df_1d_list.append(v)
 
         else:
