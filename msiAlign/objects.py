@@ -238,6 +238,7 @@ class TeachableImage(LoadedImage):
     def to_json(self):
         json_data = super().to_json()
         json_data["teaching_points"] = {key_to_str(k): v for k, v in self.teaching_points.items()}
+        json_data["teaching_points_px_coords"] = {key_to_str(k): v for k, v in self.teaching_points_px_coords.items()}
         return json_data
 
     @classmethod
@@ -247,6 +248,9 @@ class TeachableImage(LoadedImage):
         for tp_key in self.teaching_points.keys():
             x, y = tp_key
             draw_teaching_points(x, y, app, size=self.tp_size, img_tag=self.tag)
+        self.teaching_points_px_coords = {str_to_key(k): v for k, v in json_data.get("teaching_points_px_coords", {}).items()}
+        if len(self.teaching_points_px_coords) == 0:
+            self.teaching_points_px_coords = self.teaching_points.copy()
         return self
 
 
@@ -292,7 +296,6 @@ class MsiImage(TeachableImage):
         json_data = super().to_json()
         json_data["msi_rect"] = self.msi_rect
         json_data["px_rect"] = self.px_rect
-        json_data["teaching_points_px_coords"] = {key_to_str(k): v for k, v in self.teaching_points_px_coords.items()}
         return json_data
 
     @classmethod
@@ -300,7 +303,6 @@ class MsiImage(TeachableImage):
         self = super().from_json(json_data, app)
         self.msi_rect = tuple(json_data['msi_rect']) if json_data['msi_rect'] is not None else None
         self.px_rect = tuple(json_data['px_rect']) if json_data['px_rect'] is not None else None
-        self.teaching_points_px_coords = {str_to_key(k): v for k, v in json_data.get("teaching_points_px_coords", {}).items()}
         return self
 
 

@@ -685,7 +685,7 @@ class CalculationHandler:
         self.app.solvers_depth = {}
 
         for k, v in self.app.items.items():
-            if isinstance(v, MsiImage):
+            if isinstance(v, MsiImage) or isinstance(v, TeachableImage):
                 try:
                     msi_tps = v.label_indexed_teaching_points
                     # find the teaching points that have the paired label in xray_tps
@@ -699,11 +699,8 @@ class CalculationHandler:
                     self.app.solvers_depth[k] = CorSolver()
                     self.app.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
                                               np.array(list(partial_xray_tps.values()))[:, [2, 1]])
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error: {e}")
-        # create a popup window to show the process is done, and ok button to close the window
-        messagebox.showinfo("Done", "The teaching points are paired and the transformation matrix was calculated.")
-
+                except:
+                    pass
         if msi:
             self.machine_to_real_world()
 
@@ -760,7 +757,7 @@ class XRFHandler:
                 try:
                     xrf_files = [f for f in os.listdir(os.path.join(
                         self.xrf_folder, a_folder
-                    )) if f.endswith('.txt') and 'Video' not in f]
+                    )) if f.endswith('.txt')]
                 except:
                     messagebox.showerror("Error", "Unknown error when reading the xrf files")
                     return

@@ -364,9 +364,9 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     messagebox.showinfo(title="Done", message="The downcore profile has been successfully created")
 
 
-def get_xrf_depth_profile_from_gui(exported_csv_path, sqlite_db_path, how,
+def get_xrf_depth_profile_from_gui(exported_csv_path, how,
                                min_n_samples,
-                               horizon_size, save_path, save_path_1d):
+                               horizon_size, save_path_1d):
     # conver all values to float
     min_n_samples = int(min_n_samples)
     horizon_size = float(horizon_size) / 10000 # convert to cm
@@ -383,24 +383,29 @@ def get_xrf_depth_profile_from_gui(exported_csv_path, sqlite_db_path, how,
             single_exported_csv_path = path
             df = pd.read_csv(single_exported_csv_path)
             df = df.dropna()
-            df = df.sort_values(by='d')
+            try:
+                df = df.sort_values(by='d')
+            except KeyError:
+                messagebox.showerror("Error", "The exported csv file does not contain a 'd' column.")
+                return
             chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
             # get the mean depth of each chunk
             depth_1d = to_1d(df, chunks, "data['d'].mean()")
             ratio_1ds = []
             for r_how in how:
-                e0 = r_how.split('/')[0]
-                e1 = r_how.split('/')[1]
-                ratio_1d = to_1d(df, chunks, f"data['{e0}'].sum()/data['{e1}'].sum()")
-                ratio_1ds.append(ratio_1d)
-            ratio_1d = np.array(ratio_1ds).T
+                if '/' in r_how:
+                    e0 = r_how.split('/')[0]
+                    e1 = r_how.split('/')[1]
+                    ratio_1d = to_1d(df, chunks, f"data['{e0}'].sum()/data['{e1}'].sum()")
+                    ratio_1ds.append(ratio_1d)
+                else:
+                    ratio_1d = to_1d(df, chunks, f"data['{r_how}'].mean()")
+                    ratio_1ds.append(ratio_1d)
             horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
             df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
-                                  'horizon_count': horizon_count,
-                                  'slide': [os.path.basename(single_exported_csv_path)] * len(depth_1d),
-                                  'result': ratio_1d})
-            # concatenate the ratio_1d to df_1d
-            df_1d = pd.concat([df_1d, ratio_1d], axis=1)
+                                    'horizon_count': horizon_count})
+            for idx, ratio_1d in enumerate(ratio_1ds):
+                df_1d[f'{how[idx]}'] = ratio_1d.iloc[:, 0]
 
             # save the 1d depth profile
             if len(exported_csv_path) > 1:
