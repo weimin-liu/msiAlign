@@ -6,10 +6,13 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import simpledialog, messagebox
+from xxlimited_35 import error
+
 import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
+from setuptools.errors import UnknownFileError
 
 from msiAlign.func import CorSolver
 from msiAlign.menubar import MenuBar
@@ -757,9 +760,13 @@ class XRFHandler:
             self.elements = {}
             for a_folder in xrf_folders:
                 # get all the xrf images in the folder (.txt files without 'Video' in the name)
-                xrf_files = [f for f in os.listdir(os.path.join(
-                    self.xrf_folder, a_folder
-                )) if f.endswith('.txt') and 'Video' not in f]
+                try:
+                    xrf_files = [f for f in os.listdir(os.path.join(
+                        self.xrf_folder, a_folder
+                    )) if f.endswith('.txt') and 'Video' not in f]
+                except:
+                    messagebox.showerror("Error", "Unknown error when reading the xrf files")
+                    return
                 element = {}
                 # read all the elements from the xrf images
                 # find the changing parts and the common parts of all names
@@ -818,10 +825,15 @@ class XRFHandler:
 
     def prepare_for_xrf(self):
         """prepare the app for XRF data"""
+        # ask the user for the by element
+        by = simpledialog.askstring("Input", "Enter the element to mask the XRF data by", initialvalue='Fe')
+        by = by.strip()
         # add the xrf data to the app
         self.read_all_elements()
         # mask the xrf data by the element Fe
-        self.mask_xrf_data()
+        # pop up a window to ask for the element to mask the xrf data
+
+        self.mask_xrf_data(by=by)
         # transform the xrf data to the real world
         self.transform_xrf_data()
 
