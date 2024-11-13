@@ -6,14 +6,11 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import simpledialog, messagebox
-from xxlimited_35 import error
 
 import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
-from setuptools.errors import UnknownFileError
-
 from msiAlign.func import CorSolver
 from msiAlign.menubar import MenuBar
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, TeachableImage
