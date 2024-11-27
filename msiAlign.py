@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
+from matplotlib.pyplot import title
+
 from msiAlign.func import CorSolver
 from msiAlign.menubar import MenuBar
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, TeachableImage
@@ -603,9 +605,12 @@ class CalculationHandler:
             except sqlite3.OperationalError:
                 pass
             # create a transformation table with metadata(spec_id) as the reference key
-            c.execute(
-                'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
-            conn.commit()
+            try:
+                c.execute(
+                    'CREATE TABLE transformation (spec_id INTEGER, msi_img_file_name TEXT, spot_array BLOB, xray_array BLOB, linescan_array BLOB, FOREIGN KEY(spec_id) REFERENCES metadata(spec_id))')
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
             # read all the spotname from metadata table and convert them to array
             c.execute('SELECT spec_id, msi_img_file_name, spot_name FROM metadata')
             data = c.fetchall()
@@ -666,7 +671,7 @@ class CalculationHandler:
         paired_tps = str1
         # get all teaching points from xray:
         for k, v in self.app.items.items():
-            if isinstance(v, TeachableImage):
+            if isinstance(v, TeachableImage) and not isinstance(v, MsiImage):
                 xray_tps = v.label_indexed_teaching_points
                 break
         # get all their labels
@@ -754,17 +759,23 @@ class XRFHandler:
             self.elements = {}
             for a_folder in xrf_folders:
                 # get all the xrf images in the folder (.txt files without 'Video' in the name)
-                try:
-                    xrf_files = [f for f in os.listdir(os.path.join(
-                        self.xrf_folder, a_folder
-                    )) if f.endswith('.txt')]
-                except:
-                    messagebox.showerror("Error", "Unknown error when reading the xrf files")
-                    return
+                xrf_files = [f for f in os.listdir(os.path.join(
+                    self.xrf_folder, a_folder
+                )) if f.endswith('.txt')]
+                if len(xrf_files) == 0:
+                    # ignore empty folders
+                    continue
                 element = {}
                 # read all the elements from the xrf images
                 # find the changing parts and the common parts of all names
                 common_part = os.path.commonprefix(xrf_files)
+                # safely ignore the folder if there is no common part
+                if common_part == '':
+                    messagebox.showwarning(
+                        title='Warning',
+                        message=f'No common part found in the txt files in the folder {a_folder}, skipping the folder'
+                    )
+                    continue
                 changing_parts = [f.replace(common_part, '').replace('.txt', '') for f in xrf_files]
                 for i, f in enumerate(xrf_files):
                     element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
@@ -820,7 +831,7 @@ class XRFHandler:
     def prepare_for_xrf(self):
         """prepare the app for XRF data"""
         # ask the user for the by element
-        by = simpledialog.askstring("Input", "Enter the element to mask the XRF data by", initialvalue='Fe')
+        by = simpledialog.askstring("Input", "Enter the element to mask the XRF data by", initialvalue='Video')
         by = by.strip()
         # add the xrf data to the app
         self.read_all_elements()
