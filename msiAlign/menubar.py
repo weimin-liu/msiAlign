@@ -121,8 +121,7 @@ class MenuBar:
 
     def add_images(self, event=None):
         """Load the images from the file paths"""
-        file_paths = filedialog.askopenfilenames(title="Select image files",
-                                                 filetypes=[("Image files", "*.png *.jpg *.tif")])
+        file_paths = filedialog.askopenfilenames(title="Select image files")
 
         for file_path in file_paths:
             for k, v in self.app.items.items():
