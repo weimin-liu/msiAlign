@@ -5,6 +5,25 @@ from tkinter.ttk import Combobox
 from scripts.to1d import get_msi_depth_profile_from_gui, get_xrf_depth_profile_from_gui
 
 
+def validate_input(target_cmpds, spot_method):
+    """
+    Validate the input
+    :param target_cmpds: target compounds
+    :param spot_method: method to combine spots
+    :return:
+    """
+    if spot_method.lower() == 'all' or spot_method.lower() == 'any':
+        return True
+    else:
+        cmpds = target_cmpds.split(';')
+        cmpds = [c.split(':')[0] for c in cmpds]
+        spot_method = spot_method.split(';')
+        for s in spot_method:
+            if s not in cmpds:
+                return False
+        return True
+
+
 def calc_depth_profile_combined():
     """Calculate the depth profile (combined mode)"""
     window = tk.Toplevel()
@@ -77,6 +96,17 @@ def calc_depth_profile_combined():
     widgets['how_entry'].grid(row=row_index, column=1, sticky='nsew')
     widgets['how_button'].grid(row=row_index, column=2, sticky='nsew')
     row_index += 1
+
+    widgets['method_label'] = tk.Label(window, text="Spot method:")
+    widgets['method_entry'] = Combobox(window, values=(
+        "all",
+        "any",
+        "other:type in the cmpds, sep by ';'"))
+    widgets['method_entry'].current(0)
+    widgets['method_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['method_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
 
     widgets['tol_label'] = tk.Label(window, text="Tol (Da, full window):")
     widgets['tol_entry'] = tk.Entry(window)
@@ -200,6 +230,8 @@ def calc_depth_profile_combined():
             widgets['how_label'].grid()
             widgets['how_entry'].grid()
             widgets['how_button'].grid()
+            widgets['method_label'].grid()
+            widgets['method_entry'].grid()
             widgets['tol_label'].grid()
             widgets['tol_entry'].grid()
             widgets['min_snr_label'].grid()
@@ -229,6 +261,8 @@ def calc_depth_profile_combined():
             widgets['how_label'].grid_remove()
             widgets['how_entry'].grid_remove()
             widgets['how_button'].grid_remove()
+            widgets['method_label'].grid_remove()
+            widgets['method_entry'].grid_remove()
             widgets['tol_label'].grid_remove()
             widgets['tol_entry'].grid_remove()
             widgets['min_snr_label'].grid_remove()
@@ -259,14 +293,22 @@ def calc_depth_profile_combined():
             sqlite_db_path = widgets['sqlite_db_entry'].get()
             target_cmpds = widgets['target_cmpds_combo'].get()
             how = widgets['how_entry'].get()
+            spot_method = widgets['method_entry'].get()
             tol = widgets['tol_entry'].get()
             min_snr = widgets['min_snr_entry'].get()
             min_int = widgets['min_int_entry'].get()
             save_2d_path = widgets['save_2d_entry'].get()
 
+            if not validate_input(
+                target_cmpds=target_cmpds,
+                spot_method=spot_method,
+            ):
+                tk.messagebox.showerror("Error", "Invalid input, please make sure the cmpds listed in 'Method' are valid")
+                return
+
             # Call the processing function
             get_msi_depth_profile_from_gui(
-                exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
+                exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, tol, min_snr, min_int,
                 min_n_samples, horizon_size, save_2d_path, save_1d_path
             )
         else:

@@ -298,7 +298,7 @@ def to_1d(df, chunks, how: str) -> pd.DataFrame:
 
 
 
-def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, tol, min_snr, min_int,
+def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, tol, min_snr, min_int,
                                min_n_samples,
                                horizon_size, save_path, save_path_1d):
     # conver all values to float
@@ -306,6 +306,7 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     min_snr = float(min_snr)
     min_int = float(min_int)
     min_n_samples = int(min_n_samples)
+    spot_method = spot_method
     horizon_size = float(horizon_size) / 10000  # convert to cm
     # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
     target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
@@ -329,12 +330,23 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
             else:
                 _save_path = save_path
             df.to_csv(_save_path, index=False)
-            if '/' in how:
-                # in ratio mode, only keep the spots where at least one of the two compounds is not zero
-                df = df.dropna()
-            elif 'sumall' in how:
-                # in sumall mode, remove the spots where all the compounds are zero
-                df = df.dropna(how='all', subset=[col for col in df.columns if 'int' in col])
+
+            # replace the 0s in the int columns with np.nan
+            int_cols = [col for col in df.columns if 'int' in col ]
+            df[int_cols] = df[int_cols].replace(0, np.nan)
+            if spot_method == 'all':
+                # in all mode, drop the int columns where any of the compounds is zero
+                df = df.dropna(subset=int_cols, how='any')
+            elif spot_method == 'any':
+                # in any mode, drop the int columns where all the compounds are zero
+                df = df.dropna(subset=int_cols, how='all')
+            else:
+                # in custom mode, drop the column by spot_method
+                custom_cmpd_list = spot_method.split(';')
+                custom_cmpd_list = ['int_'+custom_cmpd for custom_cmpd in custom_cmpd_list]
+                df = df.dropna(subset=custom_cmpd_list, how='any')
+            # fill the nan with 0
+            df[int_cols] = df[int_cols].fillna(0)
             df = df.sort_values(by='d')
 
             chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
