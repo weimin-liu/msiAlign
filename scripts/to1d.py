@@ -350,14 +350,17 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
             df = df.sort_values(by='d')
 
             chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
-            # get the mean depth of each chunk
-            depth_1d = to_1d(df, chunks, "data['d'].mean()")
-            ratio_1d = to_1d(df, chunks, how)
-            horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
-            df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
-                                  'horizon_count': horizon_count,
-                                  'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d),
-                                  'result': ratio_1d.iloc[:, 0]})
+            if len(chunks) == 0:
+                df_1d = pd.DataFrame(columns=['d', 'horizon_count', 'slide', 'result'])
+            else:
+                # get the mean depth of each chunk
+                depth_1d = to_1d(df, chunks, "data['d'].mean()")
+                ratio_1d = to_1d(df, chunks, how)
+                horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
+                df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
+                                      'horizon_count': horizon_count,
+                                      'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d),
+                                      'result': ratio_1d.iloc[:, 0]})
             # save the 1d depth profile
             if len(exported_txt_path) > 1:
                 _save_path_1d = save_path_1d.replace('.csv',

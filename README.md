@@ -33,9 +33,12 @@ This project will be rewritten into a flask app for easier maintenance.
 - **XRF Analysis**: Select `Calc > Prep XRF`. Pair teaching points and submit to calculate transformations. Specify XRF data path when asked to generate depth and mask data, which is saved in the same directory as the XRF data.
 - Note the format of Teaching Points pairs: ![TP Pair Format](./imgs/Screenshot%202024-03-14%20at%2014.21.28.png)
 
-
 ### Depth Profile
 - Go to `Calc > Downcore Profile` to generate depth profiles. Ensure MSI exports are named exactly after spectrum data (e.g., `xxxx.d` has `xxxx.d.txt`).
+  - Spot method: three methods are available when averaging 2D data into 1D profiles.
+    - all: all compounds listed in "Target cmpds" must be present in the spectrum, or the spectrum is ignored.
+    - any: at least one compound listed in "Target cmpds" must be present in the spectrum, or the spectrum is ignored.
+    - user input: based on the compound list (separated by ;) provided by the user, the spectrum is ignored if **any** of the listed compounds are not present.
 
 ## Useful Functions
 - **Save/Load Canvas**: Save workspace via `File > Save Workspace` (JSON file), reload with `File > Load Workspace`.
