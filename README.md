@@ -39,6 +39,9 @@ This project will be rewritten into a flask app for easier maintenance.
     - all: all compounds listed in "Target cmpds" must be present in the spectrum, or the spectrum is ignored.
     - any: at least one compound listed in "Target cmpds" must be present in the spectrum, or the spectrum is ignored.
     - user input: based on the compound list (separated by ;) provided by the user, the spectrum is ignored if **any** of the listed compounds are not present.
+  - Dynamic spot averaging: dynamically adjusting the spot size to ensure a minimum number of spectra are averaged instead of dropping them.
+    - MSI res (um): the resolution of the MSI data in microns
+    - Max extra rows: the maximum number of rows to add to the spot size to ensure the minimum number of spectra are averaged. If the number of spectra is still below the minimum after adding the maximum number of rows, all spectra within the horizon are ignored.
 
 ## Useful Functions
 - **Save/Load Canvas**: Save workspace via `File > Save Workspace` (JSON file), reload with `File > Load Workspace`.
