@@ -222,7 +222,7 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
         db_handler.close()
 
 
-def get_chunks(depth, horizon_size, min_n_samples=10):
+def get_chunks(depth, horizon_size, min_n_samples=10,dynamic=False,res=200,max_extra_row=5):
     """
     Divides the depth array into chunks based on horizon size and minimum number of samples.
     Returns a list of (start_index, end_index) tuples representing chunks.
@@ -242,7 +242,24 @@ def get_chunks(depth, horizon_size, min_n_samples=10):
             current_index += 1
         if current_index - start_index >= min_n_samples:
             chunks.append((start_index, current_index))
+        else:
+            # if the chunk is too small, depend on dynamic to decide if we should add more rows
+            if dynamic:
+                # if the chunk is too small, add more rows until the chunk is larger than min_n_samples
+                retry = 0
+                while current_index - start_index < min_n_samples and current_index < n and retry < max_extra_row:
+                    end_value = depth[current_index] + res
+                    retry += 1
+                    while current_index < n and depth[current_index] <= end_value:
+                        current_index += 1
+                if current_index - start_index >= min_n_samples:
+                    chunks.append((start_index, current_index))
+            else:
+                # if the chunk is too small, ignore it
+                pass
+
         start_index = current_index
+
 
     return chunks
 
@@ -298,7 +315,7 @@ def to_1d(df, chunks, how: str) -> pd.DataFrame:
 
 
 
-def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, tol, min_snr, min_int,
+def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method,dynamic,dyn_res,dyn_max_retry, tol, min_snr, min_int,
                                min_n_samples,
                                horizon_size, save_path, save_path_1d):
     # conver all values to float
@@ -307,6 +324,10 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     min_int = float(min_int)
     min_n_samples = int(min_n_samples)
     spot_method = spot_method
+    dynamic = bool(dynamic)
+    dyn_res = float(dyn_res) / 10000  # convert to cm
+    dyn_max_retry = int(dyn_max_retry)
+
     horizon_size = float(horizon_size) / 10000  # convert to cm
     # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
     target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
@@ -349,16 +370,20 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
             df[int_cols] = df[int_cols].fillna(0)
             df = df.sort_values(by='d')
 
-            chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples)
+            chunks = get_chunks(df['d'], horizon_size, min_n_samples=min_n_samples,dynamic=dynamic,res=dyn_res,max_extra_row=dyn_max_retry)
             if len(chunks) == 0:
-                df_1d = pd.DataFrame(columns=['d', 'horizon_count', 'slide', 'result'])
+                df_1d = pd.DataFrame(columns=['d (cm)', 'horizon_count','horizon_len (cm)', 'slide', 'result'])
             else:
                 # get the mean depth of each chunk
                 depth_1d = to_1d(df, chunks, "data['d'].mean()")
+                depth_1d_min = to_1d(df, chunks, "data['d'].min()")
+                depth_1d_max = to_1d(df, chunks, "data['d'].max()")
+                depth_1d_size = depth_1d_max - depth_1d_min
                 ratio_1d = to_1d(df, chunks, how)
                 horizon_count = [chunk[1] - chunk[0] for chunk in chunks]
-                df_1d = pd.DataFrame({'d': depth_1d.iloc[:, 0],
+                df_1d = pd.DataFrame({'d (cm)': depth_1d.iloc[:, 0],
                                       'horizon_count': horizon_count,
+                                      'horizon_len (cm)': depth_1d_size.iloc[:, 0],
                                       'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d),
                                       'result': ratio_1d.iloc[:, 0]})
             # save the 1d depth profile

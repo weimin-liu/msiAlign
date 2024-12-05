@@ -107,6 +107,29 @@ def calc_depth_profile_combined():
     widgets['method_entry'].grid(row=row_index, column=1, sticky='nsew')
     row_index += 1
 
+    widgets['method_dynamic_label'] = tk.Label(window, text="Dynamic spots:")
+    # add a checkbox to enable dynamic spots or not
+    widgets['method_dynamic_var'] = tk.IntVar()
+    widgets['method_dynamic_checkbox'] = tk.Checkbutton(window, variable=widgets['method_dynamic_var'])
+    widgets['method_dynamic_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['method_dynamic_checkbox'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    # add dynamic spots parameters
+    widgets['dyn_res_label'] = tk.Label(window, text="MSI res (μm):")
+    widgets['dyn_res_entry'] = tk.Entry(window)
+    widgets['dyn_res_entry'].insert(tk.END, "Only for dynamic spots, default is 200")
+    widgets['dyn_res_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['dyn_res_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
+    widgets['dyn_max_retry'] = tk.Label(window, text="Max extra rows:")
+    widgets['dyn_max_retry_entry'] = tk.Entry(window)
+    widgets['dyn_max_retry_entry'].insert(tk.END, "Only for dynamic spots, default is 5")
+    widgets['dyn_max_retry'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['dyn_max_retry_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
 
     widgets['tol_label'] = tk.Label(window, text="Tol (Da, full window):")
     widgets['tol_entry'] = tk.Entry(window)
@@ -232,6 +255,15 @@ def calc_depth_profile_combined():
             widgets['how_button'].grid()
             widgets['method_label'].grid()
             widgets['method_entry'].grid()
+            # Dynamic spots
+            widgets['method_dynamic_label'].grid()
+            widgets['method_dynamic_checkbox'].grid()
+            widgets['dyn_res_label'].grid()
+            widgets['dyn_res_entry'].grid()
+            widgets['dyn_max_retry'].grid()
+            widgets['dyn_max_retry_entry'].grid()
+
+
             widgets['tol_label'].grid()
             widgets['tol_entry'].grid()
             widgets['min_snr_label'].grid()
@@ -261,6 +293,15 @@ def calc_depth_profile_combined():
             widgets['how_label'].grid_remove()
             widgets['how_entry'].grid_remove()
             widgets['how_button'].grid_remove()
+
+            widgets['method_dynamic_label'].grid_remove()
+            widgets['method_dynamic_checkbox'].grid_remove()
+            widgets['dyn_res_label'].grid_remove()
+            widgets['dyn_res_entry'].grid_remove()
+            widgets['dyn_max_retry'].grid_remove()
+            widgets['dyn_max_retry_entry'].grid_remove()
+
+
             widgets['method_label'].grid_remove()
             widgets['method_entry'].grid_remove()
             widgets['tol_label'].grid_remove()
@@ -294,6 +335,27 @@ def calc_depth_profile_combined():
             target_cmpds = widgets['target_cmpds_combo'].get()
             how = widgets['how_entry'].get()
             spot_method = widgets['method_entry'].get()
+
+            # Dynamic spots
+            # if dynamic spots is enabled, get the values as boolean
+            dynamic = widgets['method_dynamic_var'].get()
+            dynamic = True if dynamic == 1 else False
+            if dynamic:
+                dyn_res = widgets['dyn_res_entry'].get()
+                dyn_max_retry = widgets['dyn_max_retry_entry'].get()
+                # try converting to float, if failed, use default values
+                try:
+                    dyn_res = float(dyn_res)
+                except ValueError:
+                    dyn_res = 200
+                try:
+                    dyn_max_retry = int(dyn_max_retry)
+                except ValueError:
+                    dyn_max_retry = 5
+            else:
+                dyn_res = 200
+                dyn_max_retry = 5
+
             tol = widgets['tol_entry'].get()
             min_snr = widgets['min_snr_entry'].get()
             min_int = widgets['min_int_entry'].get()
@@ -308,7 +370,7 @@ def calc_depth_profile_combined():
 
             # Call the processing function
             get_msi_depth_profile_from_gui(
-                exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, tol, min_snr, min_int,
+                exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, dynamic, dyn_res, dyn_max_retry, tol, min_snr, min_int,
                 min_n_samples, horizon_size, save_2d_path, save_1d_path
             )
         else:
