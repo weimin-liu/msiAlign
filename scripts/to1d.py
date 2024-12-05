@@ -344,6 +344,8 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
             single_exported_txt_path = path
             df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr,
                                   min_int=min_int)
+            df = df.sort_values(by='d')
+
             # save the dataframe
             # append save_path with index if there are multiple exported_txt_path
             if len(exported_txt_path) > 1:
@@ -351,6 +353,12 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
             else:
                 _save_path = save_path
             df.to_csv(_save_path, index=False)
+
+            # this part record the missing depth for correct plotting
+            if not dynamic:
+                fake_chunks = get_chunks(df['d'], horizon_size, min_n_samples=0)
+                fake_depth_1d = to_1d(df, fake_chunks, "data['d'].mean()")
+                fake_depth_1d.columns = ['d']
 
             # replace the 0s in the int columns with np.nan
             int_cols = [col for col in df.columns if 'int' in col ]
@@ -386,6 +394,28 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
                                       'horizon_len (cm)': depth_1d_size.iloc[:, 0],
                                       'slide': [os.path.basename(single_exported_txt_path)] * len(depth_1d),
                                       'result': ratio_1d.iloc[:, 0]})
+
+                try:
+                    if not dynamic:
+                        # add the missing depth to the result
+                        # for each of the depth in fake_depth_1d, if it is not in df_1d +- horizon_size, add it to df_1d
+                        for idx, row in fake_depth_1d.iterrows():
+                            if not ((row['d'] - horizon_size < df_1d['d (cm)']) & (df_1d['d (cm)'] < row['d'] + horizon_size)).any():
+                                df_1d = pd.concat(
+                                    [df_1d,
+                                     pd.DataFrame(
+                                         {'d (cm)': [row['d']],
+                                          'horizon_count': np.nan,
+                                          'horizon_len (cm)': np.nan,
+                                          'slide': [os.path.basename(single_exported_txt_path)],
+                                          'result': np.nan})],
+                                    axis=0, ignore_index=True)
+                # if anything goes wrong, just pass, as it is not critical when the missing depth is not added
+                except:
+                    pass
+
+            df_1d = df_1d.sort_values(by='d (cm)')
+
             # save the 1d depth profile
             if len(exported_txt_path) > 1:
                 _save_path_1d = save_path_1d.replace('.csv',
