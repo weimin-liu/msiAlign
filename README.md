@@ -1,4 +1,3 @@
-This project will be rewritten into a flask app for easier maintenance.
 
 # Installation
 
