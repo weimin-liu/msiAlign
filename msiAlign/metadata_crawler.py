@@ -11,7 +11,10 @@ Metadata = namedtuple("Metadata", ["spec_file_name",
                                    "msi_img_file_name",
                                    "px_rect",
                                    "msi_rect",
-                                   "spot_name"])
+                                   "spot_name",
+                                   "TIC",
+                                   "maxpeak",
+                                   "rt"])
 
 
 class MetadataCrawler:
@@ -38,7 +41,7 @@ class MetadataCrawler:
                             try:
                                 px_rect = get_px_rect_from_mis(mis_file)
                                 xml_file = os.path.join(root, spec_file_name, "ImagingInfo.xml")
-                                msi_rect, spot_name = get_msi_rect_from_imaginginfo(xml_file, return_spot_name=True)
+                                msi_rect, spot_name, tic, maxpeak, rt = get_msi_rect_from_imaginginfo(xml_file, return_spot_name=True)
                                 im_name = get_image_file_from_mis(mis_file)
                                 im_file_path = os.path.join(root, im_name)
                                 assert im_name not in self.metadata.keys(), 'duplicate entries found'
@@ -48,7 +51,10 @@ class MetadataCrawler:
                                     msi_img_file_name=im_name,
                                     px_rect=px_rect,
                                     msi_rect=msi_rect,
-                                    spot_name=spot_name)
+                                    spot_name=spot_name,
+                                    TIC=tic,
+                                    maxpeak=maxpeak,
+                                    rt=rt)
                             except ValueError:
                                 continue
 
@@ -65,15 +71,18 @@ class MetadataCrawler:
         c = conn.cursor()
         c.execute(
             'CREATE TABLE IF NOT EXISTS metadata (spec_id INTEGER PRIMARY KEY, spec_file_name TEXT, msi_img_file_path TEXT, '
-            'msi_img_file_name TEXT, px_rect TEXT, msi_rect TEXT, spot_name TEXT)')
+            'msi_img_file_name TEXT, px_rect TEXT, msi_rect TEXT, spot_name TEXT, TIC TEXT, maxpeak TEXT, rt TEXT)')
         for k, v in self.metadata.items():
             c.execute(
-                'INSERT INTO metadata (spec_file_name, msi_img_file_path, msi_img_file_name, px_rect, msi_rect, spot_name) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO metadata (spec_file_name, msi_img_file_path, msi_img_file_name, px_rect, msi_rect, spot_name, TIC, maxpeak, rt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (v.spec_file_name, v.msi_img_file_path,
                  v.msi_img_file_name,
                  str(list(int(i) for i in v.px_rect)),
                  str(list(int(i) for i in v.msi_rect)),
-                 str(v.spot_name)))
+                 str(v.spot_name),
+                 str(v.TIC),
+                 str(v.maxpeak),
+                 str(v.rt)))
         conn.commit()
         conn.close()
 

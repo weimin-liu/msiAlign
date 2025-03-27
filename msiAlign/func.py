@@ -25,6 +25,9 @@ def get_msi_rect_from_imaginginfo(xml_file, return_spot_name=False):
         xml = f.read()
     # get all the value between <spotName> and </spotName>
     spot_name = re.findall(r'<spotName>(.*?)</spotName>', xml)
+    tic = re.findall(r'<tic>(.*?)</tic>', xml)
+    maxpeak = re.findall(r'<maxpeak>(.*?)</maxpeak>', xml)
+    rt = re.findall(r'<minutes>(.*?)</minutes>', xml)
     if return_spot_name:
         spot_name_str = spot_name.copy()
     # parse the spot name to get x and y
@@ -40,7 +43,7 @@ def get_msi_rect_from_imaginginfo(xml_file, return_spot_name=False):
     x_max, y_max = spot_name.max(axis=0)
 
     if return_spot_name:
-        return [x_min, y_min, x_max, y_max], spot_name_str
+        return [x_min, y_min, x_max, y_max], spot_name_str, tic, maxpeak, rt
     else:
         return [x_min, y_min, x_max, y_max]
 

@@ -5,6 +5,7 @@ from tkinter import messagebox
 
 import numpy as np
 import pandas as pd
+from PIL.ImageOps import grayscale
 
 from scripts.parser import extract_mzs, extract_special
 
@@ -66,6 +67,16 @@ class DatabaseHandler:
         '''
         return self.conn.execute(query, (spec_file_name,)).fetchall()
 
+    def get_grayscale_color_by_spec_file_name(self, spec_file_name):
+        query = '''
+            SELECT color_values
+            FROM metadata
+            WHERE spec_file_name = ?
+        '''
+        try:
+            return self.conn.execute(query, (spec_file_name,)).fetchall()
+        except sqlite3.OperationalError:
+            return None
 
 def get_spec_file_name_from_txt(DA_txt_path):
     """Parses the spectrum file name from the txt file path."""
@@ -198,6 +209,7 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
         # Create data view and retrieve coordinates
         db_handler.create_dataview()
         coords_result = db_handler.get_coords_by_spec_file_name(spec_file_name)
+        coords_result_color = db_handler.get_grayscale_color_by_spec_file_name(spec_file_name)
         if not coords_result:
             messagebox.showerror("Error", "The spectrum file name does not exist in the database. "
                                           "Ensure the DA export file name matches the spectrum file name in the database.")
@@ -213,8 +225,17 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
         linescan_array = np.frombuffer(coords[2], dtype=np.float64).reshape(-1, 2)
         linescan_array_df = pd.DataFrame(linescan_array[:, 0], columns=['d'])
 
-        # Combine dataframes
-        coords_df = pd.concat([spot_names_df, xray_array_df, linescan_array_df], axis=1)
+        if coords_result_color:
+            try:
+                color_values = np.frombuffer(coords_result_color[0][0], dtype=np.uint8)
+                color_values = color_values.reshape(-1, 1)
+                color_values_df = pd.DataFrame(color_values, columns=['color_values'])
+            except TypeError:
+                color_values_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['color_values'])
+        else:
+            color_values_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['color_values'])
+                # Combine dataframes
+        coords_df = pd.concat([spot_names_df, xray_array_df, linescan_array_df,color_values_df], axis=1)
         df = pd.merge(coords_df, df, on='spot_name')
         return df
 
