@@ -81,7 +81,7 @@ class DatabaseHandler:
     def get_tic_by_spec_file_name(self, spec_file_name):
         """Retrieves TIC data for a given spec_file_name."""
         query = '''
-            SELECT tic
+            SELECT TIC
             FROM metadata
             WHERE spec_file_name = ?
         '''
@@ -251,7 +251,7 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
 
         if coords_result_tic:
             try:
-                coords_result_tic = coords_result_tic[0]
+                coords_result_tic = coords_result_tic[0][0]
                 coords_result_tic = eval(coords_result_tic)
                 tic_df = pd.DataFrame(coords_result_tic, columns=['TIC'])
                 tic_df = tic_df.astype({'TIC': float})
