@@ -92,6 +92,7 @@ def calc_depth_profile_combined():
         )
     ])
 
+
     widgets['how_label'].grid(row=row_index, column=0, sticky='nsew')
     widgets['how_entry'].grid(row=row_index, column=1, sticky='nsew')
     widgets['how_button'].grid(row=row_index, column=2, sticky='nsew')
@@ -229,6 +230,14 @@ def calc_depth_profile_combined():
     widgets['save_1d_button'].grid(row=row_index, column=2, sticky='nsew')
     row_index += 1
 
+    # add a widget to input additional parameters for the calculation
+    widgets['additional_params_label'] = tk.Label(window, text="Additional params:")
+    widgets['additional_params_entry'] = tk.Entry(window)
+    widgets['additional_params_entry'].insert(tk.END, "normalization:none;")
+    widgets['additional_params_label'].grid(row=row_index, column=0, sticky='nsew')
+    widgets['additional_params_entry'].grid(row=row_index, column=1, sticky='nsew')
+    row_index += 1
+
     # Start button
     widgets['start_button'] = tk.Button(window, text="Start")
     widgets['start_button'].grid(row=row_index, column=0, columnspan=3, sticky='nsew')
@@ -273,6 +282,8 @@ def calc_depth_profile_combined():
             widgets['save_2d_label'].grid()
             widgets['save_2d_entry'].grid()
             widgets['save_2d_button'].grid()
+            widgets['additional_params_label'].grid()
+            widgets['additional_params_entry'].grid()
 
             # Hide XRF mode widgets
             widgets['transformed_csv_label'].grid_remove()
@@ -313,6 +324,8 @@ def calc_depth_profile_combined():
             widgets['save_2d_label'].grid_remove()
             widgets['save_2d_entry'].grid_remove()
             widgets['save_2d_button'].grid_remove()
+            widgets['additional_params_label'].grid_remove()
+            widgets['additional_params_entry'].grid_remove()
 
             # Show XRF mode widgets
             widgets['transformed_csv_label'].grid()

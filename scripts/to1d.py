@@ -78,6 +78,18 @@ class DatabaseHandler:
         except sqlite3.OperationalError:
             return None
 
+    def get_tic_by_spec_file_name(self, spec_file_name):
+        """Retrieves TIC data for a given spec_file_name."""
+        query = '''
+            SELECT tic
+            FROM metadata
+            WHERE spec_file_name = ?
+        '''
+        try:
+            return self.conn.execute(query, (spec_file_name,)).fetchall()
+        except sqlite3.OperationalError:
+            return None
+
 def get_spec_file_name_from_txt(DA_txt_path):
     """Parses the spectrum file name from the txt file path."""
     return os.path.basename(DA_txt_path).replace('.txt', '')
@@ -210,6 +222,8 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
         db_handler.create_dataview()
         coords_result = db_handler.get_coords_by_spec_file_name(spec_file_name)
         coords_result_color = db_handler.get_grayscale_color_by_spec_file_name(spec_file_name)
+        coords_result_tic = db_handler.get_tic_by_spec_file_name(spec_file_name)
+
         if not coords_result:
             messagebox.showerror("Error", "The spectrum file name does not exist in the database. "
                                           "Ensure the DA export file name matches the spectrum file name in the database.")
@@ -234,9 +248,27 @@ def get_mz_int_depth(DA_txt_path, db_path, target_cmpds=None, tol=0.01, min_snr=
                 color_values_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['color_values'])
         else:
             color_values_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['color_values'])
-                # Combine dataframes
-        coords_df = pd.concat([spot_names_df, xray_array_df, linescan_array_df,color_values_df], axis=1)
+
+        if coords_result_tic:
+            try:
+                coords_result_tic = coords_result_tic[0]
+                coords_result_tic = eval(coords_result_tic)
+                tic_df = pd.DataFrame(coords_result_tic, columns=['TIC'])
+                tic_df = tic_df.astype({'TIC': float})
+            except TypeError:
+                tic_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['TIC'])
+        else:
+            tic_df = pd.DataFrame(np.nan, index=np.arange(len(spot_names)), columns=['TIC'])
+
+        # Combine dataframes
+        coords_df = pd.concat([spot_names_df, xray_array_df, linescan_array_df,color_values_df, tic_df], axis=1)
         df = pd.merge(coords_df, df, on='spot_name')
+
+        if normalization == "TIC" or normalization == "tic":
+            # normalization all 'int_' columns by TIC
+            int_cols = [col for col in df.columns if col.startswith('int_')]
+            df[int_cols] = df[int_cols].div(df['TIC'], axis=0)
+
         return df
 
     finally:
@@ -338,7 +370,7 @@ def to_1d(df, chunks, how: str) -> pd.DataFrame:
 
 def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method,dynamic,dyn_res,dyn_max_retry, tol, min_snr, min_int,
                                min_n_samples,
-                               horizon_size, save_path, save_path_1d):
+                               horizon_size, save_path, save_path_1d, additional_params):
     # conver all values to float
     tol = float(tol)
     min_snr = float(min_snr)
@@ -348,6 +380,14 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     dynamic = bool(dynamic)
     dyn_res = float(dyn_res) / 10000  # convert to cm
     dyn_max_retry = int(dyn_max_retry)
+
+    additional_params = additional_params
+    additional_params = {param.split(':')[0]: param.split(':')[1] for param in additional_params.split(';')}
+
+    if 'normalization' in additional_params:
+        normalization = additional_params['normalization']
+    else:
+        normalization = False
 
     horizon_size = float(horizon_size) / 10000  # convert to cm
     # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
@@ -364,7 +404,7 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
         if os.path.exists(path):
             single_exported_txt_path = path
             df = get_mz_int_depth(single_exported_txt_path, sqlite_db_path, target_cmpds, tol=tol, min_snr=min_snr,
-                                  min_int=min_int)
+                                  min_int=min_int, normalization=normalization)
             df = df.sort_values(by='d')
 
             # save the dataframe

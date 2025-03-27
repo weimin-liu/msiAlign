@@ -12,14 +12,10 @@ def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0, normalizatio
     :param min_snr: the minimum signal-to-noise ratio
     :return:       the m/z value, intensity and signal-to-noise ratio
     """
-    if normalization == "TIC":
-        factor = np.sum(spec[:, 1])
-    elif normalization == "median":
+    if normalization == "median":
         factor = np.nanmedian(spec[:, 1])
-    elif not normalization:
-        factor = 1.0
     else:
-        raise ValueError("normalization should be either 'TIC', 'median' or False")
+        factor = 1.0
     # sort the spectrum by intensity
     spec = spec[spec[:, 1].argsort()[::-1]]
     # find the index of the highest intensity peak within the tolerance
