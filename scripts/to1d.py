@@ -382,7 +382,7 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     dyn_max_retry = int(dyn_max_retry)
 
     additional_params = additional_params
-    additional_params = {param.split(':')[0]: param.split(':')[1] for param in additional_params.split(';')}
+    additional_params = {param.split(':')[0]: param.split(':')[1] for param in additional_params.split(';') if param.strip() != ''}
 
     if 'normalization' in additional_params:
         normalization = additional_params['normalization']

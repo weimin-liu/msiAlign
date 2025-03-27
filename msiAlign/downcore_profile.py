@@ -348,6 +348,7 @@ def calc_depth_profile_combined():
             target_cmpds = widgets['target_cmpds_combo'].get()
             how = widgets['how_entry'].get()
             spot_method = widgets['method_entry'].get()
+            additional_params = widgets['additional_params_entry'].get()
 
             # Dynamic spots
             # if dynamic spots is enabled, get the values as boolean
@@ -384,7 +385,7 @@ def calc_depth_profile_combined():
             # Call the processing function
             get_msi_depth_profile_from_gui(
                 exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method, dynamic, dyn_res, dyn_max_retry, tol, min_snr, min_int,
-                min_n_samples, horizon_size, save_2d_path, save_1d_path
+                min_n_samples, horizon_size, save_2d_path, save_1d_path, additional_params
             )
         else:
             # XRF mode
