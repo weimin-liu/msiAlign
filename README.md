@@ -1,4 +1,4 @@
-This project will be rewritten into a flask app for easier maintenance.
+[![DOI](https://zenodo.org/badge/764066001.svg)](https://doi.org/10.5281/zenodo.15039621)
 
 # Installation
 
