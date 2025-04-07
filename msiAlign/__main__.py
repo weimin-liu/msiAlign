@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import pandas as pd
-from matplotlib.pyplot import title
 
 from msiAlign.func import CorSolver
 from msiAlign.menubar import MenuBar
