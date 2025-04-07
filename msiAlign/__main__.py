@@ -8,7 +8,6 @@ from tkinter import filedialog
 from tkinter import simpledialog, messagebox
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
 
