@@ -2,8 +2,13 @@
 
 # Installation
 
-- The main branch always has the latest version. Download, install `requirements.txt`, and run `msiAlign.py`.
-- The latest binary is available [here](https://github.com/weimin-liu/msiAlign/releases/latest).  
+- The main branch always has the latest version. Download, install dependencies, and run `msiAlign/__main__.py`.
+- install from pypi and run `msialign` in the terminal:
+```bash
+pip install msialign
+msialign
+```
+- The latest executable is available [here](https://github.com/weimin-liu/msiAlign/releases/latest) (won't be regularly updated as it's hard to debug).
   **Note**: You may get a trojan warning due to a PyInstaller issue (see discussions 
   [here](https://stackoverflow.com/questions/43777106/program-made-with-pyinstaller-now-seen-as-a-trojan-horse-by-avg), 
   [here](https://stackoverflow.com/questions/64788656/exe-file-made-with-pyinstaller-being-reported-as-a-virus-threat-by-windows-defen), 
