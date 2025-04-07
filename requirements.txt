@@ -1,5 +1,9 @@
-numpy
-pillow
-pandas
+numpy~=2.1.3
+pillow~=11.0.0
+pandas~=2.2.3
 scikit-learn
-matplotlib
+matplotlib~=3.9.2
+
+scipy~=1.14.1
+shiny~=1.3.0
+setuptools~=68.2.0

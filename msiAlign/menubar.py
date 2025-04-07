@@ -4,6 +4,7 @@ import os
 from msiAlign.downcore_profile import calc_depth_profile_combined
 from msiAlign.metadata_crawler import crawl_metadata
 from msiAlign.objects import MsiImage, TeachableImage
+from msiAlign.shinyApp import run_app
 
 
 def how_to_use():
@@ -80,6 +81,8 @@ class MenuBar:
 
         self.calc_menu.add_separator()
         self.calc_menu.add_command(label="Downcore Profile", command=calc_depth_profile_combined)
+
+        self.calc_menu.add_command(label="Downcore Profile (new)", command=run_app)
 
         # Add a 'Dev' menu
         self.dev_menu = tk.Menu(self.menubar, tearoff=0)

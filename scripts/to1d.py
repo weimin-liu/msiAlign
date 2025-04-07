@@ -370,7 +370,8 @@ def to_1d(df, chunks, how: str) -> pd.DataFrame:
 
 def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmpds, how, spot_method,dynamic,dyn_res,dyn_max_retry, tol, min_snr, min_int,
                                min_n_samples,
-                               horizon_size, save_path, save_path_1d, additional_params):
+                               horizon_size, save_path, save_path_1d, additional_params,
+                                   **kwargs):
     # conver all values to float
     tol = float(tol)
     min_snr = float(min_snr)
@@ -490,9 +491,17 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
     if len(df_1d_list) > 1:
         all_df_1d = pd.concat(df_1d_list, axis=0, ignore_index=True)
         all_df_1d.to_csv(save_path_1d.replace('.csv', '_all.csv'), index=False)
+    else:
+        all_df_1d = df_1d_list[0]
 
-    # create a tkinter messagebox to show the user it's done and add an ok button to close the window
-    messagebox.showinfo(title="Done", message="The downcore profile has been successfully created")
+    show_tk_message = kwargs.get('show_tk_message', True)
+    if show_tk_message:
+        # create a tkinter messagebox to show the user it's done and add an ok button to close the window
+        messagebox.showinfo(title="Done", message="The downcore profile has been successfully created")
+
+    return_df_1d = kwargs.get('return_df_1d', False)
+    if return_df_1d:
+        return all_df_1d
 
 
 def get_xrf_depth_profile_from_gui(exported_csv_path, how,
