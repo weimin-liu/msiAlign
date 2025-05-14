@@ -1,11 +1,10 @@
 from shiny import App, render, ui, reactive
 import matplotlib.pyplot as plt
-import pandas as pd
 import webbrowser
 import threading
 import time
 
-from scripts.to1d import get_msi_depth_profile_from_gui
+from msiAlign.to1d import get_msi_depth_profile_from_gui
 import os
 
 class MSIDownCoreProfileApp:

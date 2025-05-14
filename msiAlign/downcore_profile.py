@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter.ttk import Combobox
 
-from scripts.to1d import get_msi_depth_profile_from_gui, get_xrf_depth_profile_from_gui
+from msiAlign.to1d import get_msi_depth_profile_from_gui, get_xrf_depth_profile_from_gui
 
 
 def validate_input(target_cmpds, spot_method):

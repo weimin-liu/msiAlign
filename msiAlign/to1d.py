@@ -5,9 +5,8 @@ from tkinter import messagebox
 
 import numpy as np
 import pandas as pd
-from PIL.ImageOps import grayscale
 
-from scripts.parser import extract_mzs, extract_special
+from msiAlign.parser import extract_mzs, extract_special
 
 
 class DatabaseHandler:
