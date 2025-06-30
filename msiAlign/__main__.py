@@ -776,7 +776,10 @@ class XRFHandler:
                     continue
                 changing_parts = [f.replace(common_part, '').replace('.txt', '') for f in xrf_files]
                 for i, f in enumerate(xrf_files):
-                    element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
+                    try:
+                        element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
+                    except:
+                        pass # sometimes there are corrupted txt files in the xrf folder, skip those
                 # convert the elements to a dataframe, with x and y and the element names as the columns
                 for k, v in element.items():
                     # convert the wide format to long format
