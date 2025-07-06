@@ -390,8 +390,10 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
         normalization = False
 
     horizon_size = float(horizon_size) / 10000  # convert to cm
-    # convert taget_cmpds to a dictionary, target_cmpds is a string in the format of "name1:mz1;name2:mz2"
-    target_cmpds = dict([cmpd.split(':') for cmpd in target_cmpds.split(';')])
+    # convert target_cmpds string "name1:mz1;name2:mz2" to a dictionary
+    # handle possible trailing semicolons gracefully
+    cmpd_pairs = [c for c in target_cmpds.split(';') if c.strip()]
+    target_cmpds = dict(pair.split(':') for pair in cmpd_pairs)
     # make sure the values are floats
     target_cmpds = {name: float(mz) for name, mz in target_cmpds.items()}
     # get exported_txt_path, seperated by ';' and trim the last ';' if there is one
@@ -432,7 +434,7 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
                 df = df.dropna(subset=int_cols, how='all')
             else:
                 # in custom mode, drop the column by spot_method
-                custom_cmpd_list = spot_method.split(';')
+                custom_cmpd_list = [s for s in spot_method.split(';') if s.strip()]
                 custom_cmpd_list = ['int_'+custom_cmpd for custom_cmpd in custom_cmpd_list]
                 df = df.dropna(subset=custom_cmpd_list, how='any')
             # fill the nan with 0
@@ -509,8 +511,8 @@ def get_xrf_depth_profile_from_gui(exported_csv_path, how,
     # conver all values to float
     min_n_samples = int(min_n_samples)
     horizon_size = float(horizon_size) / 10000 # convert to cm
-    # parse all the target elements from how: Al/Ca, Ca/Ti, etc.
-    how = how.split(';')
+    # parse all the target elements from how: Al/Ca, Ca/Ti, etc., ignoring trailing semicolons
+    how = [h for h in how.split(';') if h.strip()]
     # get exported_csv_path, seperated by ';' and trim the last ';' if there is one
     exported_csv_path = exported_csv_path.split(';')
     if exported_csv_path[-1] == '':
