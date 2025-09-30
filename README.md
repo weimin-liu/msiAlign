@@ -6,7 +6,7 @@
 - install from pypi and run `msialign` in the terminal:
 ```bash
 pip install msialign
-msialign
+msiAlign
 ```
 - The latest executable is available [here](https://github.com/weimin-liu/msiAlign/releases/latest) (won't be regularly updated as it's hard to debug).
   **Note**: You may get a trojan warning due to a PyInstaller issue (see discussions 
