@@ -702,7 +702,8 @@ class CalculationHandler:
                     self.app.solvers_depth[k] = CorSolver()
                     self.app.solvers_depth[k].fit(np.array(list(msi_tps.values()))[:, 0:2],
                                               np.array(list(partial_xray_tps.values()))[:, [2, 1]])
-                except:
+                except Exception as e:
+                    print(e)
                     pass
         if msi:
             self.machine_to_real_world()
@@ -778,7 +779,8 @@ class XRFHandler:
                 for i, f in enumerate(xrf_files):
                     try:
                         element[changing_parts[i]] = pd.read_csv(os.path.join(self.xrf_folder,a_folder, f), sep=';',header=None)
-                    except:
+                    except Exception as e:
+                        print(e)
                         pass # sometimes there are corrupted txt files in the xrf folder, skip those
                 # convert the elements to a dataframe, with x and y and the element names as the columns
                 for k, v in element.items():
@@ -816,8 +818,6 @@ class XRFHandler:
             plt.axis('off')
             plt.savefig(os.path.join(self.xrf_folder, a_folder, 'mask.png'))
             plt.close()
-            # drop the 0 mask
-            self.elements[a_folder] = self.elements[a_folder][self.elements[a_folder]['mask']]
 
     def transform_xrf_data(self):
         for a_folder in self.elements.keys():

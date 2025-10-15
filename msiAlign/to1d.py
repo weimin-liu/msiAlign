@@ -474,7 +474,8 @@ def get_msi_depth_profile_from_gui(exported_txt_path, sqlite_db_path, target_cmp
                                           'result': np.nan})],
                                     axis=0, ignore_index=True)
                 # if anything goes wrong, just pass, as it is not critical when the missing depth is not added
-                except:
+                except Exception as e:
+                    print(e)
                     pass
 
             df_1d = df_1d.sort_values(by='d (cm)')
@@ -524,6 +525,12 @@ def get_xrf_depth_profile_from_gui(exported_csv_path, how,
             single_exported_csv_path = path
             df = pd.read_csv(single_exported_csv_path)
             df = df.dropna()
+            # use the mask
+            try:
+                df = df[df['mask']]
+            except Exception as e:
+                print(e)
+                return
             try:
                 df = df.sort_values(by='d')
             except KeyError:
