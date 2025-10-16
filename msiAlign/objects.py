@@ -2,6 +2,8 @@ import os
 import sys
 import tkinter as tk
 from tkinter import simpledialog, messagebox
+
+import PIL
 import numpy as np
 
 from PIL import Image, ImageTk
@@ -75,7 +77,12 @@ class LoadedImage:
         return self.img_path
 
     def load_image(self):
-        self.img = Image.open(self.img_path)
+        try:
+            self.img = Image.open(self.img_path)
+        except PIL.UnidentifiedImageError:
+            data = np.loadtxt(self.img_path, delimiter=";")
+            data_norm = (255 * (data - np.min(data)) / (np.max(data) - np.min(data))).astype(np.uint8)
+            self.img = Image.fromarray(data_norm)
         self.update_thumbnail()
 
     def update_thumbnail(self):
