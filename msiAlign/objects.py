@@ -20,8 +20,11 @@ def key_to_str(key):
 
 
 def str_to_key(s):
-    x_str, y_str = s.split(",")
-    return float(x_str), float(y_str)
+    key = s.strip()
+    if key.startswith("(") and key.endswith(")"):
+        key = key[1:-1]
+    x_str, y_str = key.split(",", 1)
+    return float(x_str.strip()), float(y_str.strip())
 
 
 def draw_teaching_points(x, y, app, size=3, img_tag=None):
@@ -341,6 +344,7 @@ class VerticalLine:
             width=1,
             dash=(4, 4)
         )
+        app.canvas.tag_raise(self.tag)
         app.bind_events_to_vertical_lines(self)
 
     def add_depth_text(self, app, depth):

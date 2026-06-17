@@ -16,6 +16,12 @@ from msiAlign.menubar import MenuBar
 from msiAlign.objects import LoadedImage, VerticalLine, MsiImage, TeachableImage
 from msiAlign.rclick import RightClickOnLine, RightClickOnImage, RightClickOnTeachingPoint
 
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+except ImportError:
+    DND_FILES = None
+    TkinterDnD = None
+
 
 class MainApplication(tk.Tk):
     def __init__(self):
@@ -45,11 +51,40 @@ class MainApplication(tk.Tk):
         self.menu = MenuBar(self)
 
         self.create_right_click_op()
+        self.enable_workspace_drop()
 
     def create_right_click_op(self):
         self.right_click_on_line = RightClickOnLine(self)
         self.right_click_on_image = RightClickOnImage(self)
         self.right_click_on_tp = RightClickOnTeachingPoint(self)
+
+    def enable_workspace_drop(self):
+        if DND_FILES is None or TkinterDnD is None:
+            return
+        require_tkdnd = getattr(TkinterDnD, "require", None)
+        if require_tkdnd is None:
+            require_tkdnd = getattr(TkinterDnD, "_require", None)
+        if require_tkdnd is None:
+            return
+        try:
+            require_tkdnd(self)
+        except (AttributeError, RuntimeError, tk.TclError):
+            return
+        for widget in (self, self.canvas):
+            try:
+                widget.drop_target_register(DND_FILES)
+                widget.dnd_bind("<<Drop>>", self.on_workspace_drop)
+            except (AttributeError, tk.TclError):
+                pass
+
+    def on_workspace_drop(self, event):
+        paths = self.tk.splitlist(event.data)
+        json_paths = [path for path in paths if path.lower().endswith(".json")]
+        if not json_paths:
+            messagebox.showwarning("Unsupported File", "Drop a JSON workspace file to load it.")
+            return "break"
+        self.load(file_path=json_paths[0])
+        return "break"
 
     def create_canvas(self):
         canvas_width = 1000
@@ -373,15 +408,17 @@ class MainApplication(tk.Tk):
         with open(file_path, "w") as f:
             json.dump(data_to_save, f)
 
-    def load(self, event=None):
+    def load(self, event=None, file_path=None):
         """Load the state of the canvas"""
-        file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
+        if file_path is None:
+            file_path = filedialog.askopenfilename(title="Select a workspace file", filetypes=[("JSON files", "*.json")])
         if not file_path:
             return  # User cancelled the load dialog
         with open(file_path, "r") as f:
             data = json.load(f)
             # Reset the canvas
-            self.dev_ops_handler.reset()
+            if not self.dev_ops_handler.reset():
+                return
 
             # Load the attributes automatically
             for attr in self.save_attrs:
@@ -396,16 +433,24 @@ class MainApplication(tk.Tk):
 
             # Load items
             for item in data.get("items", []):
-                if "MsiImage" in item["type"]:
+                item_type = item["type"]
+                if item_type == "MsiImage":
                     loaded_image = MsiImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
-                elif "TeachableImage" in item["type"]:
+                elif item_type in ("TeachableImage", "XrayImage"):
                     loaded_image = TeachableImage.from_json(item, self)
                     self.items[loaded_image.tag] = loaded_image
-                elif item["type"] == "VerticalLine":
+                elif item_type == "LinescanImage":
+                    loaded_image = LoadedImage.from_json(item, self)
+                    self.items[loaded_image.tag] = loaded_image
+                elif item_type == "VerticalLine":
                     vertical_line = VerticalLine.from_json(item, self)
                     self.items[vertical_line.tag] = vertical_line
                     self.bind_events_to_vertical_lines(vertical_line)
+
+            for item in self.items.values():
+                if isinstance(item, VerticalLine):
+                    self.canvas.tag_raise(item.tag)
 
             # Reconfigure scale lines and sediment start if they exist
             if self.scale_line:
@@ -441,22 +486,30 @@ class DevOpsHandler:
             if isinstance(v, TeachableImage):
                 v.tp_size = size
 
-    def reset(self):
-        userchoice=tk.messagebox.showwarning("Warning", "This will reset the canvas, are you sure?")
-        if userchoice == 'yes':
-            # reset the canvas
-            self.app.canvas.delete("all")
-            self.app.items = {}
-            self.app.cm_per_pixel = None
-            self.app.database_path = None
-            self.app.pair_tp_str = None
-            self.app.scale_line = []
-            self.app.sediment_start = None
-            self.app.pair_tp_str = None
-            self.app.solvers_xray = {}
-            self.app.solvers_depth = {}
-        else:
-            pass
+    def reset(self, confirm=True):
+        if confirm and self.app.items:
+            userchoice = tk.messagebox.askyesno("Warning", "This will reset the canvas, are you sure?")
+            if not userchoice:
+                return False
+        elif confirm and self.app.canvas.find_all():
+            userchoice = tk.messagebox.askyesno("Warning", "This will reset the canvas, are you sure?")
+            if not userchoice:
+                return False
+
+        return self.reset_without_confirmation()
+
+    def reset_without_confirmation(self):
+        # reset the canvas
+        self.app.canvas.delete("all")
+        self.app.items = {}
+        self.app.cm_per_pixel = None
+        self.app.database_path = None
+        self.app.pair_tp_str = None
+        self.app.scale_line = []
+        self.app.sediment_start = None
+        self.app.solvers_xray = {}
+        self.app.solvers_depth = {}
+        return True
 
     def export_tps(self):
         """Export the teaching points to a json file"""
