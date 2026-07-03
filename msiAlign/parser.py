@@ -1,5 +1,8 @@
+from numbers import Real
+
 import numpy as np
 import pandas as pd
+from molmass import Formula
 
 
 def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0, normalization=False):
@@ -30,7 +33,25 @@ def extract_mz(target_mz, spec, tol=0.01, min_int=10000, min_snr=0, normalizatio
         return spec[0, 0], spec[0, 1]/factor, spec[0, 2]
 
 
-def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normalization=False):
+def extract_formulas(target_formulas, txt_path, tol=0.01, min_int=10000, min_snr=0, normalization=False,
+                     position_of_first_mz=1):
+    if isinstance(target_formulas, str):
+        target_formulas = [target_formulas]
+    elif not isinstance(target_formulas, (list, tuple, set)):
+        raise TypeError("Target formulas must be a string or a sequence of strings")
+
+    target_mz = {}
+    for formula in target_formulas:
+        f = Formula(formula)
+        if f.charge == 0:
+            raise ValueError("Charge cannot be zero")
+        target_mz[formula] = f.monoisotopic_mass
+
+    return extract_mzs(target_mz, txt_path, tol=tol, min_int=min_int, min_snr=min_snr, normalization=normalization, position_of_first_mz=position_of_first_mz)
+
+
+def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normalization=False,
+                position_of_first_mz = 1):
     """
     this is the legacy function to read the txt file exported from Bruker DataAnalysis, and
     extract the target m/z values and intensities for all spectra from the txt file
@@ -45,7 +66,7 @@ def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normali
     if isinstance(target_mz, dict):
         mz_names = list(target_mz.keys())
         target_mz = list(target_mz.values())
-    elif isinstance(target_mz, float):
+    elif isinstance(target_mz, Real):
         target_mz = [target_mz]
         mz_names = [0]
     else:
@@ -64,12 +85,12 @@ def extract_mzs(target_mz, txt_path, tol=0.01, min_int=10000, min_snr=0, normali
     # get the spot name for each spectrum
     spot_names = [line.split(';')[0] for line in lines]
     # get the m/z values for each spectrum, it's after every two ';'
-    mzs = [line.split(';')[2::3] for line in lines]
+    mzs = [line.split(';')[position_of_first_mz::3] for line in lines]
     # convert everything to floats
     mzs = [[round(float(mz), 4) for mz in mz_list] for mz_list in mzs]
-    intensities = [line.split(';')[3::3] for line in lines]
+    intensities = [line.split(';')[(position_of_first_mz+1)::3] for line in lines]
     intensities = [[float(intensity) for intensity in intensity_list] for intensity_list in intensities]
-    snrs = [line.split(';')[4::3] for line in lines]
+    snrs = [line.split(';')[(position_of_first_mz+2)::3] for line in lines]
     snrs = [[float(snr) for snr in snr_list] for snr_list in snrs]
     mz = np.zeros((len(spot_names), len(target_mz)))
     intensity = np.zeros((len(spot_names), len(target_mz)))
